@@ -1,22 +1,64 @@
 import Damage from 'lib/damage';
 import KO from './komodded';
 import util from 'pokeutil';
+import volatileStatuses from 'constants/volatileStatuses'
 
 class TurnSimulator {
   simulate(state, myMove, yourMove) {
     const mine = state.self.active;
     const yours = state.opponent.active;
+    // kinda weird, but I'm sticking these in their objects to help w/ logic
+    mine.move = myMove;
+    yours.move = yourMove;
 
-    const results = [];
+    let first;
+    let second;
     // who goes first?
-    if (mine.boostedStats.spd > yours.boostedStats.spd) {
-
+    if (mine.move.priority > yours.move.priority ||
+      mine.boostedStats.spe > yours.boostedStats.spe) {
+      first = mine;
+      second = yours;
     } else {
-
+      first = yours;
+      second = mine;
     }
+
+    // first move.
+    let futures = this._simulateMove({
+      attacker: first,
+      defender: second,
+      chance: 1
+    });
+
+    // deal with some fallout
+    if (first.volatileStatus === volatileStatuses.PROTECT) {
+      delete first.volatileStatus;
+    } else if (second.volatileStatus === volatileStatuses.FLINCH) {
+      delete second.volatileStatus;
+    } else {
+      futures = futures.map( (possibility) => {
+        const res = this._simulateMove(possibility);
+        return res;
+      }).reduce(this._arrayReducer, []);
+    }
+
+    return futures;
   }
 
-  _simulateMove(attacker, defender, move) {
+
+  /**
+   * Simulates a move by splitting it into possibilities (kills, 100% dmg moves
+   * and 85% dmg moves), then further splitting those possibilities by their
+   * secondary effects.
+   *
+   * @param  {[type]} attacker [description]
+   * @param  {[type]} defender [description]
+   * @param  {[type]} move     [description]
+   * @return {[type]}          [description]
+   */
+  _simulateMove({attacker, defender, chance}) {
+    // console.log('simulatemove:', attacker, defender, chance);
+    const move = attacker.move;
     const dmg = Damage.getDamageResult(attacker, defender, move);
     const {koturns, kochance} = KO.predictKO(dmg, defender);
     const possible = [];
@@ -30,24 +72,25 @@ class TurnSimulator {
         possible.push({
           attacker,
           defender: this._takeDamage(defender, dmg * 0.85),
-          chance: 1 - kochance
+          chance: chance * (1 - kochance)
         });
       }
     } else {
       possible.push({
         attacker,
         defender: this._takeDamage(defender, dmg * 0.85),
-        chance: 0.5
+        chance: chance * 0.5
       });
       possible.push({
         attacker,
-        defender: this._takeDamage(defender, dmg * 0.85),
-        chance: 0.5
+        defender: this._takeDamage(defender, dmg),
+        chance: chance * 0.5
       });
     }
     possible.map((event) => this._applySecondaries(event, move))
       .reduce(this._arrayReducer, []);
 
+    return possible;
   }
 
   _takeDamage(mon, dmg) {

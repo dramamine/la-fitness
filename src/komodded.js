@@ -138,7 +138,7 @@ class KOModded {
 
     // normalized: how many of this 100% max damage must we do to kill?
     const dmgPct = 100 * hp / damage;
-    console.log('calculations:', damage, hp, dmgTarget, dmgPct);
+    // console.log('calculations:', damage, hp, dmgTarget, dmgPct);
     const {mean, variance} = this._getDistribution(hits, isNatureKnown);
     return this._normalize(dmgPct, mean, variance);
 
@@ -175,7 +175,7 @@ class KOModded {
 
     // percent chance of getting at least one crit
     const critChance = 1 - Math.pow(15 / 16, hits);
-    console.log('_softCritCalc debug:', dmgPctWithCrit, hitsWithinRange, critChance);
+    // console.log('_softCritCalc debug:', dmgPctWithCrit, hitsWithinRange, critChance);
     return hitsWithinRange * critChance;
   }
 

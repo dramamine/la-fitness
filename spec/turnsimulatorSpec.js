@@ -1,7 +1,7 @@
 import util from 'pokeutil';
 import TurnSimulator from 'la-fitness/src/turnsimulator';
 
-describe('turn simulator', () => {
+fdescribe('turn simulator', () => {
   describe('_arrayReducer', () => {
     it('should turn objects and arrays of objects into an array of objects', () => {
       const attacker = util.researchPokemonById('eevee');
@@ -42,18 +42,18 @@ describe('turn simulator', () => {
       expect(reduced.length).toBe(5);
     });
   });
-  fdescribe('_applySecondaries', () => {
+  describe('_applySecondaries', () => {
     it('should handle a self-boosting move', () => {
       const possible = {
         attacker: {},
         defender: {},
         chance: 1
       };
-      const move = {
+      possible.attacker.move = {
         target: 'self',
         boosts: {atk: 2}
       };
-      const res = TurnSimulator._applySecondaries(possible, move);
+      const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
       expect(res.attacker.boosts.atk).toEqual(2);
     });
 
@@ -63,11 +63,11 @@ describe('turn simulator', () => {
         defender: {},
         chance: 1
       };
-      const move = {
+      possible.attacker.move = {
         target: 'normal',
         boosts: {atk: -2}
       };
-      const res = TurnSimulator._applySecondaries(possible, move);
+      const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
       expect(res.defender.boosts.atk).toEqual(-2);
     });
 
@@ -77,11 +77,11 @@ describe('turn simulator', () => {
         defender: {},
         chance: 1
       };
-      const move = {
+      possible.attacker.move = {
         target: 'self',
         volatileStatus: 'awesome'
       };
-      const res = TurnSimulator._applySecondaries(possible, move);
+      const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
       expect(res.attacker.volatileStatus).toBe('awesome');
     });
 
@@ -91,11 +91,11 @@ describe('turn simulator', () => {
         defender: {},
         chance: 1
       };
-      const move = {
+      possible.attacker.move = {
         target: 'normal',
         volatileStatus: 'paralysis'
       };
-      const res = TurnSimulator._applySecondaries(possible, move);
+      const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
       expect(res.defender.volatileStatus).toBe('paralysis');
     });
 
@@ -105,7 +105,7 @@ describe('turn simulator', () => {
         defender: {},
         chance: 1
       };
-      const move = {
+      possible.attacker.move = {
         target: 'normal',
         secondary: {
           volatileStatus: 'paralysis',
@@ -113,7 +113,7 @@ describe('turn simulator', () => {
         }
       };
 
-      const [noproc, procs] = TurnSimulator._applySecondaries(possible, move);
+      const [noproc, procs] = TurnSimulator._applySecondaries(possible, possible.attacker.move);
 
       expect(noproc.defender.volatileStatus).toBeUndefined();
       expect(noproc.chance).toBe(0.5);
@@ -122,14 +122,13 @@ describe('turn simulator', () => {
       expect(procs.chance).toBe(0.5);
     });
 
-
     it('should apply possible boosts', () => {
       const possible = {
         attacker: {},
         defender: {},
         chance: 1
       };
-      const move = {
+      possible.attacker.move = {
         target: 'normal',
         secondary: {
           boosts: {atk: -1},
@@ -137,9 +136,7 @@ describe('turn simulator', () => {
         }
       };
 
-      console.log('possible defender:', possible.defender);
-
-      const [noproc, procs] = TurnSimulator._applySecondaries(possible, move);
+      const [noproc, procs] = TurnSimulator._applySecondaries(possible, possible.attacker.move);
 
       expect(noproc.defender.boosts).toBeUndefined();
       expect(noproc.chance).toBe(0.7);
@@ -147,6 +144,35 @@ describe('turn simulator', () => {
       expect(procs.defender.boosts.atk).toBe(-1);
       expect(procs.chance).toBe(0.3);
     });
-
+  });
+  describe('simulate', () => {
+    it('should produce results', () => {
+      const state = {
+        self: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 95
+            },
+          }, util.researchPokemonById('eevee'))
+        },
+        opponent: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 105
+            },
+          }, util.researchPokemonById('meowth'))
+        },
+      };
+      const myMove = util.researchMoveById('dragonrage');
+      const yourMove = util.researchMoveById('dragonrage');
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      expect(res.length).toEqual(4);
+      expect(res[0].chance).toEqual(0.25);
+      expect(res[3].chance).toEqual(0.25);
+    });
   });
 });
