@@ -1,6 +1,6 @@
 import Damage from 'lib/damage';
 import KO from './komodded';
-
+import util from 'pokeutil';
 
 class TurnSimulator {
   simulate(state, myMove, yourMove) {
@@ -66,11 +66,19 @@ class TurnSimulator {
     return res;
   }
 
+  /**
+   * Apply effects, such as status effects, boosts, unboosts, and volatile
+   * statuses.
+   *
+   * @param  {[type]} possible [description]
+   * @param  {[type]} move     [description]
+   * @return {[type]}          [description]
+   */
   _applySecondaries(possible, move) {
 
     // handle moves that always boost or unboost
     if (move.boosts) {
-      if (target === 'self') {
+      if (move.target === 'self') {
         possible.attacker.boosts = util.updateBoosts(possible.attacker.boosts,
           move.boosts);
       } else {
@@ -80,7 +88,7 @@ class TurnSimulator {
     }
 
     if (move.volatileStatus) {
-      if (target === 'self') {
+      if (move.target === 'self') {
         possible.attacker.volatileStatus = move.volatileStatus;
       } else {
         possible.defender.volatileStatus = move.volatileStatus;
@@ -91,27 +99,26 @@ class TurnSimulator {
 
     // apply effects that may or may not happen
     const secondary = move.secondary;
-    const noproc = Object.assign(
-      // chance that this thing does not happen.
-      {chance: possible.chance * (1 - (secondary.chance / 100))}
-    , possible);
-    const procs = Object.assign(
-      {chance: possible.chance * (secondary.chance / 100)}
-    , possible);
 
-    // apply
+    // need clones so that references to objects don't get tangled
+    const noproc = JSON.parse(JSON.stringify(possible));
+    const procs = JSON.parse(JSON.stringify(possible));
+
+    noproc.chance = noproc.chance * (1 - (secondary.chance / 100));
+    procs.chance = procs.chance * (secondary.chance / 100);
+
     if (secondary.self) {
       if (secondary.self.boosts) {
-        possible.attacker.boosts = util.updateBoosts(possible.attacker.boosts,
+        procs.attacker.boosts = util.updateBoosts(possible.attacker.boosts,
           secondary.self.boosts);
       }
     }
     if (secondary.boosts) {
-      possible.defender.boosts = util.updateBoosts(possible.defender.boosts,
-        secondary.self.boosts);
+      procs.defender.boosts = util.updateBoosts(possible.defender.boosts,
+        secondary.boosts);
     }
     if (secondary.volatileStatus) {
-      possible.defender.volatileStatus = secondary.volatileStatus;
+      procs.defender.volatileStatus = secondary.volatileStatus;
     }
 
     return [noproc, procs];
@@ -126,7 +133,7 @@ class TurnSimulator {
    */
   _arrayReducer(coll, item) {
     if (Array.isArray(item)) {
-      coll = coll.concat(item); // eslint-disable-line param-reassign
+      coll = coll.concat(item); // eslint-disable-line
     } else {
       coll.unshift( item );
     }
