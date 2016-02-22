@@ -145,6 +145,23 @@ fdescribe('turn simulator', () => {
       expect(procs.chance).toBe(0.3);
     });
   });
+  describe('_normalize', () => {
+    it('should give equal chance to all things', () => {
+      const stuff = [{}, {}, {}, {}];
+      TurnSimulator._normalize(stuff);
+      expect(stuff[0].chance).toEqual(0.25);
+      expect(stuff[1].chance).toEqual(0.25);
+      expect(stuff[2].chance).toEqual(0.25);
+      expect(stuff[3].chance).toEqual(0.25);
+    });
+    it('should subtract an existing chance', () => {
+      const stuff = [{chance: 0.4}, {}, {}];
+      TurnSimulator._normalize(stuff);
+      expect(stuff[0].chance).toEqual(0.4);
+      expect(stuff[1].chance).toEqual(0.3);
+      expect(stuff[2].chance).toEqual(0.3);
+    });
+  });
   describe('simulate', () => {
     it('should produce results', () => {
       const state = {
@@ -173,6 +190,85 @@ fdescribe('turn simulator', () => {
       expect(res.length).toEqual(4);
       expect(res[0].chance).toEqual(0.25);
       expect(res[3].chance).toEqual(0.25);
+    });
+  });
+  fdescribe('iterate', () => {
+    let state;
+    let myOptions;
+    let yourOptions;
+    beforeEach( () => {
+      state = {
+        self: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 95
+            },
+          }, util.researchPokemonById('eevee'))
+        },
+        opponent: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 105
+            },
+          }, util.researchPokemonById('meowth'))
+        },
+      };
+      myOptions = [
+        util.researchMoveById('waterpulse'),
+        util.researchMoveById('swordsdance'),
+        util.researchMoveById('toxic'),
+      ];
+      yourOptions = [
+        util.researchMoveById('waterpulse'),
+        util.researchMoveById('swordsdance'),
+        util.researchMoveById('toxic'),
+      ];
+    });
+    fit('should produce some possibilities', () => {
+      const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
+
+      const total = futures.reduce( (prev, future) => {
+        return prev + future.chance;
+      }, 0);
+      // 3 move
+      expect(total).toBeCloseTo(3, 0);
+
+      const doubleswords = futures.filter(({attacker, defender}) => {
+        return attacker.boosts && attacker.boosts.atk === 2 &&
+          defender.boosts && defender.boosts.atk === 2;
+      });
+      expect(doubleswords.length).toBe(4);
+    });
+    it('should handle possible volatile statuses', () => {
+      yourOptions = [
+        util.researchMoveById('waterpulse')
+      ];
+      const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
+      const waterpulses = futures.filter( (possibility) => {
+        return possibility.defender.move.id === 'waterpulse';
+      });
+      expect(waterpulses.length).toBeGreaterThan(0);
+      let noproc = 0;
+      let yesproc = 0;
+      waterpulses.forEach(waterpulse => {
+        // console.log('checkin out vstatus:', waterpulse.attacker.move.id,
+        //   waterpulse.attacker.volatileStatus, waterpulse.chance,
+        //   waterpulse.attacker.boosts, waterpulse.defender.hp);
+        if (waterpulse.attacker.volatileStatus === 'confusion') {
+          yesproc += waterpulse.chance;
+        } else {
+          noproc += waterpulse.chance;
+        }
+      });
+      console.log('procs:', yesproc, noproc);
+      // note that yesproc and noproc add up to 3, because we are making 3
+      // different choices, and the 'chance' amounts are all based on which
+      // choice we made.
+      expect(yesproc * 4).toEqual(noproc);
     });
   });
 });

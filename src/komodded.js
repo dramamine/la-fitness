@@ -124,7 +124,7 @@ class KOModded {
 
   static _getKOChance(damage, hits, hp, eot = 0, maxHP = 400,
     toxicCounter = 0, isNatureKnown = false) {
-    console.log(damage, hits, hp, eot, maxHP, toxicCounter, isNatureKnown);
+    // console.log(damage, hits, hp, eot, maxHP, toxicCounter, isNatureKnown);
 
     const dmgTarget = hp - (eot * hits);
     // confirm it's in the range
