@@ -1,5 +1,6 @@
 import Damage from 'lib/damage';
 import KO from './komodded';
+import Fitness from './fitness';
 import util from 'pokeutil';
 import Log from 'log';
 import volatileStatuses from 'constants/volatileStatuses';
@@ -29,6 +30,48 @@ class TurnSimulator {
     });
 
     return futures.reduce(this._arrayReducer, []);
+  }
+
+  compare(futures) {
+    const byChoice = futures.reduce( (prev, item) => {
+      const key = item.attacker.move.id || item.attacker.species;
+      if (!prev.hasOwnProperty(key)) {
+        prev[key] = [];
+      }
+      prev[key].push(item);
+      return prev;
+    }, {});
+    Object.keys(byChoice).forEach(choice => {
+      const results = byChoice[choice];
+      const fitnesses = results.map( (result) => {
+        return Fitness.evaluateFitness(result.attacker, result.defender);
+      });
+      let endurance = 0;
+      let block = 0;
+      fitnesses.forEach(fitness => {
+        endurance += fitness.endurance;
+        block += fitness.block;
+      });
+      endurance = endurance / fitnesses.length;
+      block = block / fitnesses.length;
+      console.log('got avg endurance and block:', endurance, block);
+    });
+
+    // const results = futures.map( (future) => {
+    //   const fitnesses = future.map( (result) => {
+    //     return evaluateFitness(result.attacker, result.defender);
+    //   });
+    //   console.log(`using fitnesses ${fitnesses} for choice ${future.choice.id}`);
+    //   return {
+    //     choice: future.choice,
+    //     endurance: fitnesses.map(x => x.endurance).reduce( (prev, item) => {
+    //       prev + prev + item;
+    //     }, 0) / fitnesses.length,
+    //     block: fitnesses.map(x => x.block).reduce( (prev, item) => {
+    //       return prev + item;
+    //     }, 0) / fitnesses.length,
+    //   };
+    // });
   }
 
   /**

@@ -4,16 +4,11 @@
  */
 import Damage from 'lib/damage';
 
-export default class Fitness {
-
-  onRequest(state) {
-    console.log( this.evaluateFitness(state) );
+class Fitness {
+  constructor() {
   }
 
-  evaluateFitness(state) {
-    const mine = state.self.active;
-    const yours = state.opponent.active;
-
+  evaluateFitness(mine, yours) {
     // from state, hits I will endure to kill opponent
     const hitsEndured = this._getHitsEndured(mine, yours);
 
@@ -131,3 +126,5 @@ export default class Fitness {
     return weighted;
   }
 }
+
+export default new Fitness();

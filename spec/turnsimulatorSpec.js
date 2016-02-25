@@ -1,7 +1,7 @@
 import util from 'pokeutil';
 import TurnSimulator from 'la-fitness/src/turnsimulator';
 
-fdescribe('turn simulator', () => {
+describe('turn simulator', () => {
   describe('_arrayReducer', () => {
     it('should turn objects and arrays of objects into an array of objects', () => {
       const attacker = util.researchPokemonById('eevee');
@@ -192,7 +192,7 @@ fdescribe('turn simulator', () => {
       expect(res[3].chance).toEqual(0.25);
     });
   });
-  fdescribe('iterate', () => {
+  describe('iterate', () => {
     let state;
     let myOptions;
     let yourOptions;
@@ -228,7 +228,7 @@ fdescribe('turn simulator', () => {
         util.researchMoveById('toxic'),
       ];
     });
-    fit('should produce some possibilities', () => {
+    it('should produce some possibilities', () => {
       const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
 
       const total = futures.reduce( (prev, future) => {
@@ -269,6 +269,48 @@ fdescribe('turn simulator', () => {
       // different choices, and the 'chance' amounts are all based on which
       // choice we made.
       expect(yesproc * 4).toEqual(noproc);
+    });
+  });
+  describe('compare', () => {
+    let state;
+    let myOptions;
+    let yourOptions;
+    beforeEach( () => {
+      state = {
+        self: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 95
+            },
+          }, util.researchPokemonById('eevee'))
+        },
+        opponent: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 105
+            },
+          }, util.researchPokemonById('meowth'))
+        },
+      };
+      myOptions = [
+        util.researchMoveById('waterpulse'),
+        util.researchMoveById('swordsdance'),
+        util.researchMoveById('toxic'),
+      ];
+      yourOptions = [
+        util.researchMoveById('waterpulse'),
+        util.researchMoveById('swordsdance'),
+        util.researchMoveById('toxic'),
+      ];
+    });
+    fit('should produce some possibilities', () => {
+      const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
+      const comparison = TurnSimulator.compare(futures);
+      console.log(comparison);
     });
   });
 });
