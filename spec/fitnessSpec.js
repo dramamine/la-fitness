@@ -1,82 +1,100 @@
-import Fitness from 'la-fitness';
-const fitness = new Fitness();
+import fitness from 'la-fitness/src/fitness';
+import Util from 'pokeutil';
 
 describe('Fitness', () => {
+  describe('_getMaxDmg', () => {
+    it('should research a pokemon if we don\'t know its moves', () => {
+      const attacker = Util.researchPokemonById('hitmonchan');
+      const defender = Util.researchPokemonById('eevee');
+      const {bestMove} = fitness._getMaxDmg(attacker, defender);
+      // STAB move with 75 base power. its best.
+      expect(bestMove.id).toEqual('drainpunch');
+    });
+  });
   describe('_getHitsEndured', () => {
     let attacker;
     let defender;
+    let move;
+
+    const baseAttacker = {
+      statuses: '',
+      volatileStatuses: '',
+      species: 'eevee'
+    };
+
+    const baseDefender = {
+      calculatedCurHP: 100,
+      calculatedMaxHP: 100,
+      statuses: '',
+      volatileStatuses: '',
+      species: 'eevee'
+    };
+
+    const baseMove = {
+      id: 'punch',
+      priority: 0
+    };
+
     beforeEach( () => {
-      attacker = {
-        stats: {
-          speed: 150
-        },
-        statuses: '',
-        volatileStatuses: '',
-      };
-      defender = {
-        calculatedCurHP: 100,
-        calculatedMaxHP: 100,
-        stats: {
-          speed: 100
-        },
-        statuses: '',
-        volatileStatuses: '',
-      };
+      attacker = Object.assign({}, baseAttacker);
+      defender = Object.assign({}, baseDefender);
+      move = Object.assign({}, baseMove);
     });
     it('should calculate no hits for a fast OHKO move', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(100);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(1);
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 100, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(true);
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(0);
     });
-    it('should calculate 0-1 for a same-speed OHKO move', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(100);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0.5);
-      expect(fitness._getHitsEndured(attacker, defender)).toEqual(0.5);
+    it('should calculate 1 for a slow OHKO move', () => {
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 100, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      expect(fitness._getHitsEndured(attacker, defender)).toEqual(1);
     });
-    it('should calculate 0-1 for a slow OHKO move', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(100);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0.3);
-      expect(fitness._getHitsEndured(attacker, defender)).toEqual(0.7);
+    it('should calculate 1 for a fast 2HKO move', () => {
+      console.log('FAST 2HKO MOVE');
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(true);
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 50, bestMove: move});
+      expect(fitness._getHitsEndured(attacker, defender)).toEqual(1);
     });
-    it('should calculate 1-2 for a same-speed 2HKO move', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(50);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0.5);
-      expect(fitness._getHitsEndured(attacker, defender)).toEqual(1.5);
+    it('should calculate 2 for a slow-speed 2HKO move', () => {
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 50, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      expect(fitness._getHitsEndured(attacker, defender)).toEqual(2);
     });
     it('should add 2.1 turns for a frozen attacker', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(50);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0);
-      attacker.statuses = 'frz';
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 50, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      attacker.conditions = 'frz';
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(4.1);
     });
     it('should add 2 turns for a sleepy attacker', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(50);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0);
-      attacker.statuses = 'slp';
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 50, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      attacker.conditions = 'slp';
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(4);
     });
     it('should add 25% of turns for a paralyzed attacker', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(50);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0);
-      attacker.statuses = 'par';
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 50, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      attacker.conditions = 'par';
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(2.5);
     });
     it('should handle regular poison, 1/8 dmg per turn', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(12.5);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0);
-      defender.statuses = 'psn';
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 12.5, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      defender.conditions = 'psn';
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(4);
     });
     it('should handle a burn, 1/8 dmg per turn', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(12.5);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0);
-      defender.statuses = 'brn';
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 12.5, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      defender.conditions = 'brn';
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(4);
     });
     it('should handle bad poison, kills in 6 turns', () => {
-      spyOn(fitness, '_getMaxDmg').and.returnValue(0);
-      spyOn(fitness, '_chanceOfFirst').and.returnValue(0);
-      defender.statuses = 'tox';
+      spyOn(fitness, '_getMaxDmg').and.returnValue({maxDmg: 0, bestMove: move});
+      spyOn(fitness, '_probablyGoesFirst').and.returnValue(false);
+      defender.conditions = 'tox';
       expect(fitness._getHitsEndured(attacker, defender)).toEqual(6);
     });
   });

@@ -307,7 +307,7 @@ describe('turn simulator', () => {
         util.researchMoveById('toxic'),
       ];
     });
-    fit('should produce some possibilities', () => {
+    it('should produce some possibilities', () => {
       const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
       const comparison = TurnSimulator.compare(futures);
       console.log(comparison);

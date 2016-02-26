@@ -3,6 +3,8 @@
  *
  */
 import Damage from 'lib/damage';
+import Formats from 'data/formats';
+import Util from 'pokeutil';
 
 class Fitness {
   constructor() {
@@ -20,110 +22,135 @@ class Fitness {
 
   // @TODO the whole thing
   // @TODO apply speed buffs, ex. paralysis with and without 'Quick Feet'
-  _chanceOfFirst(speedA, speedB) {
-    return 0.5;
+  _probablyGoesFirst(attacker, defender, move) {
+    if (move.priority > 0) return true;
+    if (move.priority < 0) return false;
+
+    const speedA = attacker.boostedStats
+      ? attacker.boostedStats.spe
+      : attacker.stats.spe;
+
+    const speedB = defender.boostedStats
+      ? defender.boostedStats.spe
+      : defender.stats.spe;
+    return (speedA > speedB);
   }
 
   _getMaxDmg(attacker, defender) {
     let maxDmg = 0;
-    attacker.moves.forEach( (move, idx) => {
+    let bestMove;
+    const moves = attacker.moves ||
+      Formats[Util.toId(attacker.species)].randomBattleMoves
+      .map(id => Util.researchMoveById(id));
+
+    moves.forEach( (move) => {
       if (move.disabled) return;
-      if (move.pp === 0) return;
       let est = -1;
       try {
         est = Damage.getDamageResult(
           attacker,
           defender,
-          move
+          move,
+          {},
+          true
         );
       } catch (e) {
         console.log(e);
       }
       if (est > maxDmg) {
         maxDmg = est;
-        bestMove = idx;
+        bestMove = move;
       }
     });
-    return maxDmg;
+    return {maxDmg, bestMove};
   }
 
+  /**
+   * How many hits can the defender endure?
+   * i.e. how many of his turns can he get off before I kill him?
+   *
+   * @param  {[type]} attacker [description]
+   * @param  {[type]} defender [description]
+   * @return {[type]}          [description]
+   */
   _getHitsEndured(attacker, defender) {
     // just using max dmg to keep it simple. most moves have the same 'spread'
     // so I'm not too worried about this.
-    const maxDmg = this._getMaxDmg(attacker, defender);
+    const {maxDmg, bestMove} = this._getMaxDmg(attacker, defender);
+
+    // @TODO shouldn't have to do this.
+    if (!attacker.conditions) attacker.conditions = '';
+    if (!defender.conditions) defender.conditions = '';
 
     let statusDmg = 0;
     // @TODO burn needs to wear off
-    if (defender.statuses && defender.statuses.indexOf('brn') >= 0) {
+    if (defender.conditions.indexOf('brn') >= 0) {
       statusDmg += defender.calculatedMaxHP / 8; // @TODO does this exist
     }
-    if (defender.statuses && defender.statuses.indexOf('psn') >= 0) {
+    if (defender.conditions.indexOf('psn') >= 0) {
       statusDmg += defender.calculatedMaxHP / 8; // @TODO does this exist
     }
 
     // @TODO do I have any priority moves that would OHKO?
-    const chanceOfFirst = this._chanceOfFirst(attacker.stats.speed,
-      defender.stats.speed || [100, 200]);
+    const isFirst = this._probablyGoesFirst(attacker, defender, bestMove);
     let hitsEndured = 0; // 10 is pretty bad.
-    let remainingHP = defender.calculatedCurHP; // @TODO does this exist
+    let remainingHP = +defender.calculatedCurHP; // @TODO does this exist
 
     // subtracting out HPs here - we have the KO Chance library code available
     // but it seems like overkill and I"m worried about performance. also the
     // KO library doesn't give us as much flexibility with status effect
     // damage.
-    const hitsAndWeights = [];
     while (hitsEndured < 10) {
-      // if we get off a first hit...
-      remainingHP -= maxDmg;
-      if (remainingHP <= 0) {
-        hitsAndWeights.push([hitsEndured, chanceOfFirst]);
-        if (hitsAndWeights.length === 2) break;
+      console.log(`isfirst: ${isFirst}, remaining HP: ${remainingHP} dmg: ${maxDmg}`);
+      if (isFirst) {
+        remainingHP -= maxDmg;
       }
+
+      if (remainingHP <= 0) {
+        break;
+      }
+
       // if we went second...
       hitsEndured++;
+      remainingHP -= maxDmg;
 
       // 'badly poisoned', gets worse each turn.
       // @TODO see if we've already calculated turns of toxicity
       // @TODO maybe track it in 'toxicity' or 'toxCounter' or something
-      if (defender.statuses.indexOf('tox') >= 0) {
+      if (defender.conditions.indexOf('tox') >= 0) {
         statusDmg += defender.calculatedMaxHP / 16; // @TODO does this exist
       }
       remainingHP -= statusDmg;
-      if (remainingHP <= 0) {
-        hitsAndWeights.push([hitsEndured, 1 - chanceOfFirst]);
-        if (hitsAndWeights.length === 2) break;
-      }
+      // could be dead at this point! let's run the loop again though. all it
+      // will do is deal more dmg if isFirst is true.
     }
-
-    // convert hitsAndWeights to weighted avg
-    let weighted = hitsAndWeights.reduce((total, [hits, weight]) => {
-      return total + (hits * weight);
-    }, 0);
 
     // do we have status effects that make this worse?
 
     // paralysis penalty: moves fail 25% of the time
-    if (attacker.statuses.indexOf('par') >= 0) {
-      weighted *= 1.25;
+    if (attacker.conditions.indexOf('par') >= 0) {
+      hitsEndured *= 1.25;
     }
     // frozen penalty: gonna cost you some turns.
+    // this will be slightly wrong for mons who have been frozen for some
+    // turns already.
     // 0 turns: .20
     // 1 turn: .16     (0-1 turns: .36)
     // 2 turns: .128   (0-2 turns: .488)
     // 3 turns: .1024  (0-3 turns: .5904)
-    if (attacker.statuses.indexOf('frz') >= 0) {
-      weighted += 2.1;
+    if (attacker.conditions.indexOf('frz') >= 0) {
+      hitsEndured += 2.1;
     }
 
-    if (attacker.statuses.indexOf('slp') >= 0) {
-      weighted += 2;
+    if (attacker.conditions.indexOf('slp') >= 0) {
+      hitsEndured += 2;
     }
 
-    if (attacker.volatileStatuses.indexOf('confusion') >= 0) { // @TODO this doesn't exist
-      weighted += 2;
+    if (attacker.volatileStatuses && attacker.volatileStatuses.indexOf('confusion') >= 0) { // @TODO this doesn't exist
+      hitsEndured += 2;
     }
 
-    return weighted;
+    return hitsEndured;
   }
 }
 
