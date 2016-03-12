@@ -2,7 +2,7 @@ import Fitness from './fitness';
 
 export default class Main {
 
-  onRequest(state) {
+  decide(state) {
     console.log( Fitness.evaluateFitness(state) );
   }
 }
