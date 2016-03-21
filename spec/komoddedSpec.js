@@ -81,10 +81,11 @@ describe('KOModded', () => {
     it('should return a reasonable number of turns', () => {
       const kochance = KO.predictKO(44, {
         hp: 200,
-        maxhp: 200
+        maxhp: 200,
+        types: ['Normal']
       });
       // console.log('komodded prediction:', kochance);
       expect(kochance.turns).toBeGreaterThan(4);
     });
-  })
+  });
 });

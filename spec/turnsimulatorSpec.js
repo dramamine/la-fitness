@@ -162,6 +162,69 @@ describe('turn simulator', () => {
       expect(stuff[2].chance).toEqual(0.3);
     });
   });
+  describe('_simulateMove', () => {
+    let attacker;
+    let defender;
+    beforeEach( () => {
+      attacker = util.researchPokemonById('eevee');
+      defender = util.researchPokemonById('meowth');
+    });
+    it('should handle boring damage', () => {
+      attacker.move = util.researchMoveById('dragonrage');
+      const assumptions = {
+        level: 50,
+        hp: 100,
+        maxhp: 100
+      };
+      Object.assign(attacker, assumptions);
+      Object.assign(defender, assumptions);
+      const res = TurnSimulator._simulateMove({
+        attacker,
+        defender,
+        chance: 1
+      });
+      // min dmg
+      expect(res[0].defender.hp).toEqual(60);
+      // max dmg
+      expect(res[1].defender.hp).toEqual(60);
+    });
+    it('should handle likely death', () => {
+      attacker.move = util.researchMoveById('dragonrage');
+      const assumptions = {
+        level: 50,
+        hp: 40,
+        maxhp: 100
+      };
+      Object.assign(attacker, assumptions);
+      Object.assign(defender, assumptions);
+      const res = TurnSimulator._simulateMove({
+        attacker,
+        defender,
+        chance: 1
+      });
+      // min dmg
+      expect(res[0].defender.hp).toEqual(0);
+    });
+    it('should handle possible death', () => {
+      attacker.move = util.researchMoveById('waterpulse');
+      const assumptions = {
+        level: 50,
+        hp: 100,
+        maxhp: 100
+      };
+      Object.assign(attacker, assumptions);
+      Object.assign(defender, assumptions);
+      const possibilities = TurnSimulator._simulateMove({
+        attacker,
+        defender,
+        chance: 1
+      });
+      // two distinct HPs.
+      const hps = new Set();
+      possibilities.forEach(res => hps.add(res.defender.hp));
+      expect(hps.size).toEqual(2);
+    });
+  });
   describe('simulate', () => {
     it('should produce results', () => {
       const state = {
@@ -187,9 +250,16 @@ describe('turn simulator', () => {
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchMoveById('dragonrage');
       const res = TurnSimulator.simulate(state, myMove, yourMove);
+      // all these possibilities are equal and have a 25% chance. there are
+      // four possibilities bc each move does either low or high damage, but
+      // with this move, it's simpler bc the move always does 40 damage.
       expect(res.length).toEqual(4);
       expect(res[0].chance).toEqual(0.25);
       expect(res[3].chance).toEqual(0.25);
+      expect(res[0].attacker.hp).toEqual(60);
+      expect(res[3].attacker.hp).toEqual(60);
+      expect(res[0].defender.hp).toEqual(60);
+      expect(res[3].defender.hp).toEqual(60);
     });
   });
   describe('iterate', () => {
@@ -264,14 +334,14 @@ describe('turn simulator', () => {
           noproc += waterpulse.chance;
         }
       });
-      console.log('procs:', yesproc, noproc);
+      // console.log('procs:', yesproc, noproc);
       // note that yesproc and noproc add up to 3, because we are making 3
       // different choices, and the 'chance' amounts are all based on which
       // choice we made.
       expect(yesproc * 4).toEqual(noproc);
     });
   });
-  describe('compare', () => {
+  xdescribe('compare', () => {
     let state;
     let myOptions;
     let yourOptions;

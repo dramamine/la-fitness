@@ -12,12 +12,12 @@ class Fitness {
 
   evaluateFitness(mine, yours) {
     // from state, hits I will endure to kill opponent
-    const hitsEndured = this._getHitsEndured(mine, yours);
+    const endurance = this._getHitsEndured(mine, yours);
 
     // from state, hits opponent will endure to kill me
-    const hitsCaused = this._getHitsEndured(yours, mine);
+    const block = this._getHitsEndured(yours, mine);
 
-    return { hitsEndured, hitsCaused };
+    return { endurance, block };
   }
 
   // @TODO the whole thing
@@ -85,22 +85,26 @@ class Fitness {
     let statusDmg = 0;
     // @TODO burn needs to wear off
     if (defender.conditions.indexOf('brn') >= 0) {
-      statusDmg += defender.calculatedMaxHP / 8; // @TODO does this exist
+      statusDmg += defender.maxhp / 8; // @TODO does this exist
     }
     if (defender.conditions.indexOf('psn') >= 0) {
-      statusDmg += defender.calculatedMaxHP / 8; // @TODO does this exist
+      statusDmg += defender.maxhp / 8; // @TODO does this exist
     }
 
     // @TODO do I have any priority moves that would OHKO?
     const isFirst = this._probablyGoesFirst(attacker, defender, bestMove);
     let hitsEndured = 0; // 10 is pretty bad.
-    let remainingHP = +defender.calculatedCurHP; // @TODO does this exist
+    let remainingHP = defender.hp; // @TODO does this exist
 
     // subtracting out HPs here - we have the KO Chance library code available
     // but it seems like overkill and I"m worried about performance. also the
     // KO library doesn't give us as much flexibility with status effect
     // damage.
     while (hitsEndured < 10) {
+      if (remainingHP === null) {
+        console.log('bailing out! missing hp', attacker, defender);
+        exit;
+      }
       console.log(`isfirst: ${isFirst}, remaining HP: ${remainingHP} dmg: ${maxDmg}`);
       if (isFirst) {
         remainingHP -= maxDmg;
@@ -118,7 +122,7 @@ class Fitness {
       // @TODO see if we've already calculated turns of toxicity
       // @TODO maybe track it in 'toxicity' or 'toxCounter' or something
       if (defender.conditions.indexOf('tox') >= 0) {
-        statusDmg += defender.calculatedMaxHP / 16; // @TODO does this exist
+        statusDmg += defender.maxhp / 16; // @TODO does this exist
       }
       remainingHP -= statusDmg;
       // could be dead at this point! let's run the loop again though. all it

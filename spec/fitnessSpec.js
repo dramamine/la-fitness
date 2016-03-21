@@ -17,14 +17,16 @@ describe('Fitness', () => {
     let move;
 
     const baseAttacker = {
+      hp: 100,
+      maxhp: 100,
       statuses: '',
       volatileStatuses: '',
       species: 'eevee'
     };
 
     const baseDefender = {
-      calculatedCurHP: 100,
-      calculatedMaxHP: 100,
+      hp: 100,
+      maxhp: 100,
       statuses: '',
       volatileStatuses: '',
       species: 'eevee'

@@ -33,6 +33,7 @@ class TurnSimulator {
   }
 
   compare(futures) {
+    console.log('I still believe in futures', futures);
     const byChoice = futures.reduce( (prev, item) => {
       const key = item.attacker.move.id || item.attacker.species;
       if (!prev.hasOwnProperty(key)) {
@@ -43,11 +44,32 @@ class TurnSimulator {
     }, {});
     Object.keys(byChoice).forEach(choice => {
       const results = byChoice[choice];
+
       const fitnesses = results.map( (result) => {
-        return Fitness.evaluateFitness(result.attacker, result.defender);
-      });
+        console.log('checking this result:', result);
+        const {endurance, block} = Fitness.evaluateFitness(result.attacker, result.defender);
+        const res = {
+          attackMove: result.attacker.move.id || result.attacker.species,
+          defendMove: result.defender.move.id || result.defender.species,
+          endurance,
+          block,
+          ebratio: block / endurance
+        };
+        return res;
+      }).sort( (a, b) => b.ebratio - a.ebratio );
+
+      console.log('heres the best situation:');
+      console.log(fitnesses[0]);
+
+      console.log('heres the worst situation:');
+      console.log(fitnesses[fitnesses.length - 1]);
+
+
+      // i.e.I have to endure this many hits to kill defender
       let endurance = 0;
+      // i.e. I will get this many hits in before I am dead
       let block = 0;
+
       fitnesses.forEach(fitness => {
         endurance += fitness.endurance;
         block += fitness.block;
@@ -55,6 +77,8 @@ class TurnSimulator {
       endurance = endurance / fitnesses.length;
       block = block / fitnesses.length;
       console.log('got avg endurance and block:', endurance, block);
+      console.log('from these fitnesses:');
+      console.log(fitnesses);
     });
 
     // const results = futures.map( (future) => {
@@ -187,6 +211,7 @@ class TurnSimulator {
     }
 
     const dmg = Damage.getDamageResult(attacker, defender, move);
+    console.log('using dmg', dmg);
     // const dmg = 40;
     const {koturns, kochance} = KO.predictKO(dmg, defender);
     const possible = [];
@@ -199,19 +224,19 @@ class TurnSimulator {
       if (kochance < 1) {
         possible.push({
           attacker: clone(attacker),
-          defender: this._takeDamage(clone(defender), dmg * 0.85),
+          defender: this._takeDamage(clone(defender), dmg[0]),
           chance: chance * (1 - kochance)
         });
       }
     } else {
       possible.push({
         attacker: clone(attacker),
-        defender: this._takeDamage(clone(defender), dmg * 0.85),
+        defender: this._takeDamage(clone(defender), dmg[0]),
         chance: chance * 0.5
       });
       possible.push({
         attacker: clone(attacker),
-        defender: this._takeDamage(clone(defender), dmg),
+        defender: this._takeDamage(clone(defender), dmg[dmg.length - 1]),
         chance: chance * 0.5
       });
     }
@@ -246,6 +271,7 @@ class TurnSimulator {
     const res = clone(mon);
     res.dead = true;
     res.condition = '0 fnt';
+    res.hp = 0;
     return res;
   }
 
@@ -261,10 +287,10 @@ class TurnSimulator {
     // handle moves that always boost or unboost
     if (move.boosts) {
       if (move.target === 'self') {
-        possible.attacker.boosts = util.updateBoosts(possible.attacker.boosts,
+        possible.attacker.boosts = util.boostCombiner(possible.attacker.boosts,
           move.boosts);
       } else {
-        possible.defender.boosts = util.updateBoosts(possible.defender.boosts,
+        possible.defender.boosts = util.boostCombiner(possible.defender.boosts,
           move.boosts);
       }
     }
@@ -291,12 +317,12 @@ class TurnSimulator {
 
     if (secondary.self) {
       if (secondary.self.boosts) {
-        procs.attacker.boosts = util.updateBoosts(possible.attacker.boosts,
+        procs.attacker.boosts = util.boostCombiner(possible.attacker.boosts,
           secondary.self.boosts);
       }
     }
     if (secondary.boosts) {
-      procs.defender.boosts = util.updateBoosts(possible.defender.boosts,
+      procs.defender.boosts = util.boostCombiner(possible.defender.boosts,
         secondary.boosts);
     }
     if (secondary.volatileStatus) {
@@ -306,7 +332,8 @@ class TurnSimulator {
         procs.defender.volatileStatus = secondary.volatileStatus;
       }
     }
-    console.log('inside secondaries:', noproc.defender.volatileStatus, procs.defender.volatileStatus);
+
+    // console.log('inside secondaries:', noproc.defender.volatileStatus, procs.defender.volatileStatus);
 
     return [noproc, procs];
   }

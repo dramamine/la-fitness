@@ -1,4 +1,5 @@
 import Gaussian from './gaussian';
+import Damage from 'lib/damage';
 
 import distributions from './probability-distributions';
 
@@ -15,12 +16,15 @@ class KOModded {
       defender = Damage.assumeStats(defender); // eslint-disable-line
     }
 
+    if (defender.ability) defender.ability = '';
+    // console.log('predictKO trace:', damage, defender);
+
     let hazards = 0;
     if (field.isSR && defender.ability !== 'Magic Guard') {
-      const effectiveness = typeChart.Rock[defender.type1] * (defender.type2 ? typeChart.Rock[defender.type2] : 1);
+      const effectiveness = typeChart.Rock[defender.types[0]] * (defender.types[1] ? typeChart.Rock[defender.types[1]] : 1);
       hazards += Math.floor(effectiveness * defender.maxhp / 8);
     }
-    if ([defender.type1, defender.type2].indexOf('Flying') === -1 &&
+    if (defender.types.indexOf('Flying') === -1 &&
       ['Magic Guard', 'Levitate'].indexOf(defender.ability) === -1 &&
       defender.item !== 'Air Balloon') {
       if (field.spikes === 1) {
@@ -47,8 +51,8 @@ class KOModded {
         eot += Math.floor(defender.maxhp / 16);
       }
     } else if (field.weather === 'Sand') {
-      if (['Rock', 'Ground', 'Steel'].indexOf(defender.type1) === -1 &&
-            ['Rock', 'Ground', 'Steel'].indexOf(defender.type2) === -1 &&
+      if (['Rock', 'Ground', 'Steel'].indexOf(defender.types[0]) === -1 &&
+            ['Rock', 'Ground', 'Steel'].indexOf(defender.types[1] || null) === -1 &&
             ['Magic Guard', 'Overcoat', 'Sand Force', 'Sand Rush', 'Sand Veil'].indexOf(defender.ability) === -1 &&
             defender.item !== 'Safety Goggles') {
         eot -= Math.floor(defender.maxhp / 16);
@@ -56,7 +60,7 @@ class KOModded {
     } else if (field.weather === 'Hail') {
       if (defender.ability === 'Ice Body') {
         eot += Math.floor(defender.maxhp / 16);
-      } else if (defender.type1 !== 'Ice' && defender.type2 !== 'Ice' &&
+      } else if (defender.types.indexOf('Ice') === -1 &&
             ['Magic Guard', 'Overcoat', 'Snow Cloak'].indexOf(defender.ability) === -1 &&
             defender.item !== 'Safety Goggles') {
         eot -= Math.floor(defender.maxhp / 16);
@@ -65,14 +69,14 @@ class KOModded {
     if (defender.item === 'Leftovers') {
       eot += Math.floor(defender.maxhp / 16);
     } else if (defender.item === 'Black Sludge') {
-      if (defender.type1 === 'Poison' || defender.type2 === 'Poison') {
+      if (defender.types.indexOf('Poison') >= 0) {
         eot += Math.floor(defender.maxhp / 16);
       } else if (defender.ability !== 'Magic Guard' && defender.ability !== 'Klutz') {
         eot -= Math.floor(defender.maxhp / 8);
       }
     }
     if (field.terrain === 'Grassy') {
-      if (field.isGravity || (defender.type1 !== 'Flying' && defender.type2 !== 'Flying' &&
+      if (field.isGravity || (defender.types.indexOf('Flying') >= 0 &&
           defender.item !== 'Air Balloon' && defender.ability !== 'Levitate')) {
         eot += Math.floor(defender.maxhp / 16);
       }
