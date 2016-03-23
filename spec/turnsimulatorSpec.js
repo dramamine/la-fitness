@@ -122,6 +122,23 @@ describe('turn simulator', () => {
       expect(procs.chance).toBe(0.5);
     });
 
+    it('should apply status effects', () => {
+      const possible = {
+        attacker: {},
+        defender: {},
+        chance: 1
+      };
+      possible.attacker.move = {
+        target: 'status',
+        status: 'tox'
+      };
+
+      const [res] = TurnSimulator._applySecondaries(possible, possible.attacker.move);
+
+      expect(res.defender.statuses).toEqual(['tox']);
+      expect(res.chance).toBe(1);
+    });
+
     it('should apply possible boosts', () => {
       const possible = {
         attacker: {},
@@ -341,7 +358,7 @@ describe('turn simulator', () => {
       expect(yesproc * 4).toEqual(noproc);
     });
   });
-  xdescribe('compare', () => {
+  fdescribe('compare', () => {
     let state;
     let myOptions;
     let yourOptions;

@@ -51,6 +51,9 @@ class TurnSimulator {
         const res = {
           attackMove: result.attacker.move.id || result.attacker.species,
           defendMove: result.defender.move.id || result.defender.species,
+          attackerHp: result.attacker.hp,
+          defenderHp: result.defender.hp,
+          attackerStatuses: result.defender.condition,
           endurance,
           block,
           ebratio: block / endurance
@@ -295,6 +298,12 @@ class TurnSimulator {
       }
     }
 
+    // handle status moves
+    if (move.status) {
+      possible.defender.statuses = possible.defender.statuses || [];
+      possible.defender.statuses.push(move.status);
+    }
+
     if (move.volatileStatus) {
       if (move.target === 'self') {
         possible.attacker.volatileStatus = move.volatileStatus;
@@ -303,7 +312,7 @@ class TurnSimulator {
       }
     }
 
-    if (!move.secondary) return possible;
+    if (!move.secondary) return [possible];
 
     // apply effects that may or may not happen
     const secondary = move.secondary;
