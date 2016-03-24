@@ -53,7 +53,8 @@ class TurnSimulator {
           defendMove: result.defender.move.id || result.defender.species,
           attackerHp: result.attacker.hp,
           defenderHp: result.defender.hp,
-          attackerStatuses: result.defender.condition,
+          attackerStatuses: result.attacker.condition,
+          defenderStatuses: result.defender.condition,
           endurance,
           block,
           ebratio: block / endurance
@@ -145,8 +146,7 @@ class TurnSimulator {
       yours.move = yourChoice;
 
       // who goes first?
-      if (mine.move.priority > yours.move.priority ||
-        mine.boostedStats.spe > yours.boostedStats.spe) {
+      if (Damage.goesFirst(mine, yours)) {
         first = mine;
         second = yours;
       } else {

@@ -38,7 +38,6 @@ describe('turn simulator', () => {
         ],
       ];
       const reduced = possible.reduce(TurnSimulator._arrayReducer, []);
-      console.log(reduced);
       expect(reduced.length).toBe(5);
     });
   });
@@ -54,7 +53,7 @@ describe('turn simulator', () => {
         boosts: {atk: 2}
       };
       const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
-      expect(res.attacker.boosts.atk).toEqual(2);
+      expect(res[0].attacker.boosts.atk).toEqual(2);
     });
 
     it('should handle a stat lowering move', () => {
@@ -68,7 +67,7 @@ describe('turn simulator', () => {
         boosts: {atk: -2}
       };
       const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
-      expect(res.defender.boosts.atk).toEqual(-2);
+      expect(res[0].defender.boosts.atk).toEqual(-2);
     });
 
     it('should handle a self-boosting volatile status', () => {
@@ -82,7 +81,7 @@ describe('turn simulator', () => {
         volatileStatus: 'awesome'
       };
       const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
-      expect(res.attacker.volatileStatus).toBe('awesome');
+      expect(res[0].attacker.volatileStatus).toBe('awesome');
     });
 
     it('should handle a volatile status move', () => {
@@ -96,7 +95,7 @@ describe('turn simulator', () => {
         volatileStatus: 'paralysis'
       };
       const res = TurnSimulator._applySecondaries(possible, possible.attacker.move);
-      expect(res.defender.volatileStatus).toBe('paralysis');
+      expect(res[0].defender.volatileStatus).toBe('paralysis');
     });
 
     it('should apply possible effects', () => {
@@ -358,7 +357,18 @@ describe('turn simulator', () => {
       expect(yesproc * 4).toEqual(noproc);
     });
   });
-  fdescribe('compare', () => {
+// story time:
+// I am slightly faster than my opponent.
+// my best strategy is to cast swords dance, then water pulse. this will kill
+// the opponent and leave me sitting with +2 attack, and only endure one
+// attack from my opponent.
+// after one turn casting swords dance, I should notice that my endurance is
+// 0.
+// my opponent has toxic with Prankster, so he should cast some non-lethal
+// attack move the first turn and cast Prankster the second turn.
+// (this will require foresight for 2 turns, understanding of Prankster, and
+// understanding the value of status moves.)
+  xdescribe('compare', () => {
     let state;
     let myOptions;
     let yourOptions;
@@ -369,7 +379,7 @@ describe('turn simulator', () => {
             hp: 100,
             maxhp: 100,
             boostedStats: {
-              spe: 95
+              spe: 105
             },
           }, util.researchPokemonById('eevee'))
         },
@@ -378,7 +388,7 @@ describe('turn simulator', () => {
             hp: 100,
             maxhp: 100,
             boostedStats: {
-              spe: 105
+              spe: 95
             },
           }, util.researchPokemonById('meowth'))
         },
@@ -389,9 +399,7 @@ describe('turn simulator', () => {
         util.researchMoveById('toxic'),
       ];
       yourOptions = [
-        util.researchMoveById('waterpulse'),
         util.researchMoveById('swordsdance'),
-        util.researchMoveById('toxic'),
       ];
     });
     it('should produce some possibilities', () => {

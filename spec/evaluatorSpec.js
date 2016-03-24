@@ -2,7 +2,7 @@ import TurnSimulator from 'la-fitness/src/turnsimulator';
 import Evaluator from 'la-fitness/src/evaluator';
 import state from 'helpers/randomstate';
 
-xdescribe('evaluator', () => {
+describe('evaluator', () => {
   describe('evaluate', () => {
     it('should format my options the way I want', () => {
       spyOn(TurnSimulator, 'iterate');
@@ -12,21 +12,18 @@ xdescribe('evaluator', () => {
       expect(options[1].id).toBe('swordsdance');
       expect(options[2].id).toBe('willowisp');
       expect(options[3].id).toBe('shadowclaw');
-      expect(options[4].species).toBe('Armaldo');
-      expect(options[5].species).toBe('Landorus');
-      expect(options[6].species).toBe('Eelektross');
-      expect(options[7].species).toBe('Seaking');
-      expect(options[8].species).toBe('Starmie');
+      expect(options.find(option => option.species === 'Armaldo')).toBeTruthy();
+      expect(options.find(option => option.species === 'Landorus')).toBeTruthy();
+      expect(options.find(option => option.species === 'Eelektross')).toBeTruthy();
+      expect(options.find(option => option.species === 'Seaking')).toBeTruthy();
+      expect(options.find(option => option.species === 'Starmie')).toBeTruthy();
     });
-
-    it('should evaluate a fitness for each option', () => {
-      const futures = Evaluator.evaluate(state);
-      console.log(futures[0]);
-      // futures.forEach(future => {
-      //   expect()
-      // })
-    });
+    // it('should evaluate a fitness for each option', () => {
+    //   const futures = Evaluator.evaluate(state);
+    //   console.log(futures[0]);
+    //   // futures.forEach(future => {
+    //   //   expect()
+    //   // })
+    // });
   });
-
-
 });

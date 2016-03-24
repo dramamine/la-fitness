@@ -105,7 +105,7 @@ class Fitness {
         console.log('bailing out! missing hp', attacker, defender);
         exit;
       }
-      console.log(`isfirst: ${isFirst}, remaining HP: ${remainingHP} dmg: ${maxDmg}`);
+      // console.log(`isfirst: ${isFirst}, remaining HP: ${remainingHP} dmg: ${maxDmg}`);
       if (isFirst) {
         remainingHP -= maxDmg;
       }
