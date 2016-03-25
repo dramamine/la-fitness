@@ -20,87 +20,15 @@ class TurnSimulator {
    * representing the choices the opponent might make.
    * @return {[type]}             [description]
    */
-  iterate(state, myOptions, yourOptions) {
-    const futures = [];
-    yourOptions = this._normalize(clone(yourOptions)); // eslint-disable-line
-    myOptions.forEach((mine) => {
-      yourOptions.forEach((yours) => {
-        futures.push(this.simulate(state, mine, yours));
-      });
-    });
-
-    return futures.reduce(this._arrayReducer, []);
-  }
-
-  compare(futures) {
-    console.log('I still believe in futures', futures);
-    const byChoice = futures.reduce( (prev, item) => {
-      const key = item.attacker.move.id || item.attacker.species;
-      if (!prev.hasOwnProperty(key)) {
-        prev[key] = [];
-      }
-      prev[key].push(item);
-      return prev;
-    }, {});
-    Object.keys(byChoice).forEach(choice => {
-      const results = byChoice[choice];
-
-      const fitnesses = results.map( (result) => {
-        console.log('checking this result:', result);
-        const {endurance, block} = Fitness.evaluateFitness(result.attacker, result.defender);
-        const res = {
-          attackMove: result.attacker.move.id || result.attacker.species,
-          defendMove: result.defender.move.id || result.defender.species,
-          attackerHp: result.attacker.hp,
-          defenderHp: result.defender.hp,
-          attackerStatuses: result.attacker.condition,
-          defenderStatuses: result.defender.condition,
-          endurance,
-          block,
-          ebratio: block / endurance
-        };
-        return res;
-      }).sort( (a, b) => b.ebratio - a.ebratio );
-
-      console.log('heres the best situation:');
-      console.log(fitnesses[0]);
-
-      console.log('heres the worst situation:');
-      console.log(fitnesses[fitnesses.length - 1]);
-
-
-      // i.e.I have to endure this many hits to kill defender
-      let endurance = 0;
-      // i.e. I will get this many hits in before I am dead
-      let block = 0;
-
-      fitnesses.forEach(fitness => {
-        endurance += fitness.endurance;
-        block += fitness.block;
-      });
-      endurance = endurance / fitnesses.length;
-      block = block / fitnesses.length;
-      console.log('got avg endurance and block:', endurance, block);
-      console.log('from these fitnesses:');
-      console.log(fitnesses);
-    });
-
-    // const results = futures.map( (future) => {
-    //   const fitnesses = future.map( (result) => {
-    //     return evaluateFitness(result.attacker, result.defender);
-    //   });
-    //   console.log(`using fitnesses ${fitnesses} for choice ${future.choice.id}`);
-    //   return {
-    //     choice: future.choice,
-    //     endurance: fitnesses.map(x => x.endurance).reduce( (prev, item) => {
-    //       prev + prev + item;
-    //     }, 0) / fitnesses.length,
-    //     block: fitnesses.map(x => x.block).reduce( (prev, item) => {
-    //       return prev + item;
-    //     }, 0) / fitnesses.length,
-    //   };
-    // });
-  }
+  // iterate(state, myOptions, yourOptions) {
+  //   const futures = [];
+  //   yourOptions = this._normalize(clone(yourOptions)); // eslint-disable-line
+  //   myOptions.forEach((mine) => {
+  //     yourOptions.forEach((yours) => {
+  //       futures.push(this.simulate(state, mine, yours));
+  //     });
+  //   });
+  // }
 
   /**
    * Take a given state, and simulate what the attacker and defender will look
@@ -120,8 +48,6 @@ class TurnSimulator {
    * the Pokemon was switched out?
    */
   simulate(state, myChoice, yourChoice) {
-    const totalChance = yourChoice.chance || 1;
-
     const mine = clone(state.self.active);
     const yours = clone(state.opponent.active);
     console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
@@ -155,37 +81,45 @@ class TurnSimulator {
       }
     }
     // first move.
-    let futures = this._simulateMove({
+    // futures is an array of [attacker, defender, chance]
+    const afterFirst = this._simulateMove({
       attacker: first,
-      defender: second,
-      chance: totalChance * (first.chance || 1) * (second.chance || 1)
+      defender: second
     });
+    let afterSecond = [];
 
     // deal with some fallout
     if (first.volatileStatus === volatileStatuses.PROTECT) {
       delete first.volatileStatus;
+      afterSecond = afterFirst;
     } else if (second.volatileStatus === volatileStatuses.FLINCH) {
       delete second.volatileStatus;
+      afterSecond = afterFirst;
     } else {
-      futures = futures.map( (possibility) => {
+      afterFirst.forEach( (possibility) => {
+        // WHOA WATCH OUT FOR THE ATK/DEF SWAP
         const res = this._simulateMove({
           attacker: possibility.defender,
-          defender: possibility.attacker,
-          chance: possibility.chance
+          defender: possibility.attacker
         });
-        return res;
-      }).reduce(this._arrayReducer, []);
+        res.forEach( (poss) => {
+          afterSecond.push({
+            attacker: poss.attacker,
+            defender: poss.defender,
+            chance: possibility.chance * poss.chance
+          });
+        });
+      });
     }
 
-    if (!this._verifyTotalChance(futures, totalChance)) {
+    if (!this._verifyTotalChance(afterSecond)) {
       Log.error('got wrong total from simulate');
       Log.error(mine, yours, totalChance);
-      Log.error(futures);
+      Log.error(afterSecond);
     }
 
-    return futures;
+    return afterSecond;
   }
-
 
   /**
    * Simulates a move by splitting it into possibilities (kills, 100% dmg moves
@@ -197,7 +131,7 @@ class TurnSimulator {
    * @param  {[type]} move     [description]
    * @return {[type]}          [description]
    */
-  _simulateMove({attacker, defender, chance}) {
+  _simulateMove({attacker, defender}) {
     // console.log('simulatemove:', attacker, defender, chance);
     attacker = JSON.parse(JSON.stringify(attacker)); // eslint-disable-line
     defender = JSON.parse(JSON.stringify(defender)); // eslint-disable-line
@@ -209,7 +143,7 @@ class TurnSimulator {
       return {
         attacker,
         defender,
-        chance
+        chance: 1
       };
     }
 
@@ -228,55 +162,50 @@ class TurnSimulator {
         possible.push({
           attacker: clone(attacker),
           defender: this._takeDamage(clone(defender), dmg[0]),
-          chance: chance * (1 - kochance)
+          chance: (1 - kochance)
         });
       }
     } else {
+      // 50% chance for max damage; 50% chance for min damage.
       possible.push({
         attacker: clone(attacker),
         defender: this._takeDamage(clone(defender), dmg[0]),
-        chance: chance * 0.5
+        chance: 0.5
       });
       possible.push({
         attacker: clone(attacker),
         defender: this._takeDamage(clone(defender), dmg[dmg.length - 1]),
-        chance: chance * 0.5
+        chance: 0.5
       });
     }
-    const applied = possible.map((event) => this._applySecondaries(event, move));
-    const reduced = applied.reduce(this._arrayReducer, []);
+    const applied = [];
+    possible.forEach((event) => {
+      console.log('looking at possible:');
+      console.log(event.defender.hp, event.chance);
+      const maybeProcs = this._applySecondaries(event, move);
+      maybeProcs.forEach((proc) => {
+        console.log('looking at proc:', proc.chance);
+        const res = {
+          attacker: proc.attacker,
+          defender: proc.defender,
+          chance: (proc.chance * event.chance)
+        };
+        console.log(event.chance, proc.chance, res.chance);
+        applied.push(res);
+        console.log('just pushed a proc with chance', proc.chance * event.chance);
+      });
+    });
 
-    if (!this._verifyTotalChance(reduced, chance)) {
+    if (!this._verifyTotalChance(applied)) {
       Log.error('got wrong total from _simulateMove');
-      Log.error(attacker, defender, chance);
-      Log.error(reduced);
+      Log.error(attacker);
+      Log.error(defender);
+      Log.error(applied);
     }
 
-    return reduced;
+    return applied;
   }
 
-  /**
-   * Aplly damage to our pokemon.
-   * @param  {[type]} mon [description]
-   * @param  {[type]} dmg [description]
-   * @return {[type]}     [description]
-   */
-  _takeDamage(mon, dmg) {
-    const res = clone(mon);
-    res.hp = Math.max(0, mon.hp - dmg);
-    if (res.hp === 0) {
-      return this._kill(res);
-    }
-    return res;
-  }
-
-  _kill(mon) {
-    const res = clone(mon);
-    res.dead = true;
-    res.condition = '0 fnt';
-    res.hp = 0;
-    return res;
-  }
 
   /**
    * Apply effects, such as status effects, boosts, unboosts, and volatile
@@ -312,7 +241,13 @@ class TurnSimulator {
       }
     }
 
-    if (!move.secondary) return [possible];
+    if (!move.secondary) {
+      return [{
+        attacker: possible.attacker,
+        defender: possible.defender,
+        chance: 1
+      }];
+    }
 
     // apply effects that may or may not happen
     const secondary = move.secondary;
@@ -321,8 +256,8 @@ class TurnSimulator {
     const noproc = clone(possible);
     const procs = clone(possible);
 
-    noproc.chance = noproc.chance * (1 - (secondary.chance / 100));
-    procs.chance = procs.chance * (secondary.chance / 100);
+    noproc.chance = (1 - (secondary.chance / 100));
+    procs.chance = (secondary.chance / 100);
 
     if (secondary.self) {
       if (secondary.self.boosts) {
@@ -348,51 +283,26 @@ class TurnSimulator {
   }
 
   /**
-   * Turn objects and arrays of objects into just an array of objects
-   *
-   * @param  {Array} coll The collection.
-   * @param  {Array|Object} item The stuff to add to the colleciton.
-   * @return {Array}      The updated collection.
+   * Aplly damage to our pokemon.
+   * @param  {[type]} mon [description]
+   * @param  {[type]} dmg [description]
+   * @return {[type]}     [description]
    */
-  _arrayReducer(coll, item) {
-    if (Array.isArray(item)) {
-      coll = coll.concat(item); // eslint-disable-line
-    } else {
-      coll.unshift( item );
+  _takeDamage(mon, dmg) {
+    const res = clone(mon);
+    res.hp = Math.max(0, mon.hp - dmg);
+    if (res.hp === 0) {
+      return this._kill(res);
     }
-    return coll;
+    return res;
   }
 
-  /**
-   * Give each item in this array an equal chance. If chance is already set
-   * for any of these, subtract that out before splitting the rest of chance
-   * equally.
-   *
-   * @param  {Array<Object>} arr An array of objects.
-   *
-   * @return {Array<Object>}     The same array, with the 'chance' key filled out.
-   */
-  _normalize(arr) {
-    if (!Array.isArray(arr) || arr.length <= 0) {
-      Log.error('tried to normalize something weird.');
-      return arr;
-    }
-    // add up chances that are already set
-    const existingChance = arr.reduce((prev, item) => {
-      if (item.chance) { return prev + item.chance; }
-      return prev;
-    }, 0);
-
-    // evenly divide up remaining chance by # of remaining items
-    const chance = (1 - existingChance) /
-      arr.filter( item => !item.chance ).length;
-
-    arr.forEach(item => {
-      if (!item.chance) {
-        item.chance = chance;
-      }
-    });
-    return arr;
+  _kill(mon) {
+    const res = clone(mon);
+    res.dead = true;
+    res.condition = '0 fnt';
+    res.hp = 0;
+    return res;
   }
 
   /**
@@ -414,5 +324,4 @@ class TurnSimulator {
     return false;
   }
 }
-
 export default new TurnSimulator();

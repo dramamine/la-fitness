@@ -2,46 +2,46 @@ import util from 'pokeutil';
 import TurnSimulator from 'la-fitness/src/turnsimulator';
 
 describe('turn simulator', () => {
-  describe('_arrayReducer', () => {
-    it('should turn objects and arrays of objects into an array of objects', () => {
-      const attacker = util.researchPokemonById('eevee');
-      const defender = util.researchPokemonById('meowth');
-      const possible = [
-        [
-          {
-            attacker,
-            defender,
-            chance: 0.125
-          },
-          {
-            attacker,
-            defender,
-            chance: 0.125
-          },
-        ],
-        {
-          attacker,
-          defender,
-          chance: 0.5
-        },
-        [
-          {
-            attacker,
-            defender,
-            chance: 0.125
-          },
-          {
-            attacker,
-            defender,
-            chance: 0.125
-          },
-        ],
-      ];
-      const reduced = possible.reduce(TurnSimulator._arrayReducer, []);
-      expect(reduced.length).toBe(5);
-    });
-  });
-  describe('_applySecondaries', () => {
+  // describe('_arrayReducer', () => {
+  //   it('should turn objects and arrays of objects into an array of objects', () => {
+  //     const attacker = util.researchPokemonById('eevee');
+  //     const defender = util.researchPokemonById('meowth');
+  //     const possible = [
+  //       [
+  //         {
+  //           attacker,
+  //           defender,
+  //           chance: 0.125
+  //         },
+  //         {
+  //           attacker,
+  //           defender,
+  //           chance: 0.125
+  //         },
+  //       ],
+  //       {
+  //         attacker,
+  //         defender,
+  //         chance: 0.5
+  //       },
+  //       [
+  //         {
+  //           attacker,
+  //           defender,
+  //           chance: 0.125
+  //         },
+  //         {
+  //           attacker,
+  //           defender,
+  //           chance: 0.125
+  //         },
+  //       ],
+  //     ];
+  //     const reduced = possible.reduce(TurnSimulator._arrayReducer, []);
+  //     expect(reduced.length).toBe(5);
+  //   });
+  // });
+  fdescribe('_applySecondaries', () => {
     it('should handle a self-boosting move', () => {
       const possible = {
         attacker: {},
@@ -178,7 +178,7 @@ describe('turn simulator', () => {
       expect(stuff[2].chance).toEqual(0.3);
     });
   });
-  describe('_simulateMove', () => {
+  fdescribe('_simulateMove', () => {
     let attacker;
     let defender;
     beforeEach( () => {
@@ -196,8 +196,7 @@ describe('turn simulator', () => {
       Object.assign(defender, assumptions);
       const res = TurnSimulator._simulateMove({
         attacker,
-        defender,
-        chance: 1
+        defender
       });
       // min dmg
       expect(res[0].defender.hp).toEqual(60);
@@ -215,8 +214,7 @@ describe('turn simulator', () => {
       Object.assign(defender, assumptions);
       const res = TurnSimulator._simulateMove({
         attacker,
-        defender,
-        chance: 1
+        defender
       });
       // min dmg
       expect(res[0].defender.hp).toEqual(0);
@@ -232,8 +230,7 @@ describe('turn simulator', () => {
       Object.assign(defender, assumptions);
       const possibilities = TurnSimulator._simulateMove({
         attacker,
-        defender,
-        chance: 1
+        defender
       });
       // two distinct HPs.
       const hps = new Set();
@@ -241,7 +238,7 @@ describe('turn simulator', () => {
       expect(hps.size).toEqual(2);
     });
   });
-  describe('simulate', () => {
+  fdescribe('simulate', () => {
     it('should produce results', () => {
       const state = {
         self: {
@@ -276,6 +273,11 @@ describe('turn simulator', () => {
       expect(res[3].attacker.hp).toEqual(60);
       expect(res[0].defender.hp).toEqual(60);
       expect(res[3].defender.hp).toEqual(60);
+
+      expect(res[0].attacker.species).toEqual('Eevee');
+      expect(res[0].defender.species).toEqual('Meowth');
+      expect(res[3].attacker.species).toEqual('Eevee');
+      expect(res[3].defender.species).toEqual('Meowth');
     });
   });
   describe('iterate', () => {
