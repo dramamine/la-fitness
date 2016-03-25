@@ -7,7 +7,24 @@ import Formats from 'data/formats';
 import Util from 'pokeutil';
 
 class Fitness {
-  constructor() {
+
+
+  partyFitness(party, side) {
+    let sumHp = party.reduce( (sum, curr) => {
+      return sum + (curr.hppct || 0);
+    }, 0);
+
+    const alive = party.filter( mon => {
+      return !mon.dead;
+    }).length;
+
+    if (side.spikes) {
+      let spikesFactor = 1 / ( (5 - side.spikes) * 2); // trust me. valid for 1-3
+      const potentialDamage = (alive - 1) * spikesFactor;
+      sumHp -= Math.floor(potentialDamage, 0);
+    }
+
+    return sumHp;
   }
 
   evaluateFitness(mine, yours) {
