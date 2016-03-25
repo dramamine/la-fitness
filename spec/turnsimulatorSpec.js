@@ -1,5 +1,6 @@
 import util from 'pokeutil';
 import TurnSimulator from 'la-fitness/src/turnsimulator';
+import Damage from 'lib/damage';
 
 describe('turn simulator', () => {
   // describe('_arrayReducer', () => {
@@ -239,45 +240,49 @@ describe('turn simulator', () => {
     });
   });
   fdescribe('simulate', () => {
-    it('should produce results', () => {
-      const state = {
-        self: {
-          active: Object.assign({
-            hp: 100,
-            maxhp: 100,
-            boostedStats: {
-              spe: 95
-            },
-          }, util.researchPokemonById('eevee'))
-        },
-        opponent: {
-          active: Object.assign({
-            hp: 100,
-            maxhp: 100,
-            boostedStats: {
-              spe: 105
-            },
-          }, util.researchPokemonById('meowth'))
-        },
-      };
+    let mine;
+    let yours;
+    beforeEach( () => {
+      mine = Object.assign({
+        hp: 100,
+        maxhp: 100
+      }, util.researchPokemonById('eevee'));
+      yours = Object.assign({
+        hp: 100,
+        maxhp: 100
+      }, util.researchPokemonById('meowth'));
+    });
+    fit('should produce results', () => {
+      spyOn(Damage, 'goesFirst').and.returnValue(false);
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchMoveById('dragonrage');
-      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      const res = TurnSimulator.simulate(mine, yours, myMove, yourMove);
       // all these possibilities are equal and have a 25% chance. there are
       // four possibilities bc each move does either low or high damage, but
       // with this move, it's simpler bc the move always does 40 damage.
       expect(res.length).toEqual(4);
       expect(res[0].chance).toEqual(0.25);
       expect(res[3].chance).toEqual(0.25);
-      expect(res[0].attacker.hp).toEqual(60);
-      expect(res[3].attacker.hp).toEqual(60);
-      expect(res[0].defender.hp).toEqual(60);
-      expect(res[3].defender.hp).toEqual(60);
+      expect(res[0].mine.hp).toEqual(60);
+      expect(res[3].mine.hp).toEqual(60);
+      expect(res[0].yours.hp).toEqual(60);
+      expect(res[3].yours.hp).toEqual(60);
 
-      expect(res[0].attacker.species).toEqual('Eevee');
-      expect(res[0].defender.species).toEqual('Meowth');
-      expect(res[3].attacker.species).toEqual('Eevee');
-      expect(res[3].defender.species).toEqual('Meowth');
+      expect(res[0].mine.species).toEqual('Eevee');
+      expect(res[0].yours.species).toEqual('Meowth');
+      expect(res[3].mine.species).toEqual('Eevee');
+      expect(res[3].yours.species).toEqual('Meowth');
+    });
+    fit('should not swap mine and yours', () => {
+      spyOn(Damage, 'goesFirst').and.returnValue(true);
+      const myMove = util.researchMoveById('dragonrage');
+      const yourMove = util.researchMoveById('dragonrage');
+      const res = TurnSimulator.simulate(mine, yours, myMove, yourMove);
+      expect(res.length).toEqual(4);
+      expect(res[0].mine.species).toEqual('Eevee');
+      expect(res[0].yours.species).toEqual('Meowth');
+      expect(res[3].mine.species).toEqual('Eevee');
+      expect(res[3].yours.species).toEqual('Meowth');
     });
   });
   describe('iterate', () => {
