@@ -41,16 +41,12 @@ class TurnSimulator {
       console.log('looking at your choice:', yourChoice.id);
       // an array of {attacker, defender, chance} objects.
       const possibilities = this.simulate(
-        state.self.active,
-        state.opponent.active,
+        state,
         myChoice,
         yourChoice
       );
       possibilities.forEach((possibility) => {
-        // @TODO less lines of code?
-        // console.log('gonna rate this:', possibility);
-        const fitness = this.rate(possibility);
-        possibility.fitness = fitness;
+        possibility.fitness = this.rate(possibility.state);
       });
       const expectedValue = possibilities.reduce((prev, item) => {
         return prev + item.fitness * item.chance;
@@ -75,9 +71,9 @@ class TurnSimulator {
 
     console.log('minimax sez: OK, lets use worst case scenario.');
     const worstCase = whatCouldHappen[0];
-    const updatedState = clone(state);
-    updatedState.self.active = worstCase.possibilities[0].mine;
-    updatedState.opponent.active = worstCase.possibilities[0].yours;
+    // @TODO might want to update this! it's just one of many possible future
+    // states.
+    const updatedState = worstCase.possibilities[0].state;
     return {
       state: updatedState,
       fitness: worstCase.expectedValue,
@@ -87,7 +83,9 @@ class TurnSimulator {
   }
 
   // get fitness & status of this team
-  rate({mine, yours}) {
+  rate(state) {
+    const mine = state.self.active;
+    const yours = state.opponent.active;
     if (yours.dead) return STATUS_WEIGHTS.VICTORY;
     if (mine.dead) return STATUS_WEIGHTS.DEFEAT;
     return (mine.hppct - yours.hppct) / 100;
@@ -111,9 +109,9 @@ class TurnSimulator {
    * and defender.move to see which move was performed; if not this, then maybe
    * the Pokemon was switched out?
    */
-  simulate(miyne, youyrs, myChoice, yourChoice) {
-    const mine = clone(miyne);
-    const yours = clone(youyrs);
+  simulate(state, myChoice, yourChoice) {
+    const mine = clone(state.self.active);
+    const yours = clone(state.opponent.active);
     // console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     // console.log('beginning simulator. mine is', mine.species, myChoice.id, yours.species, yourChoice.id);
@@ -153,22 +151,20 @@ class TurnSimulator {
       // console.log('after second move, attacker is:', res[0].attacker.species);
       res.forEach( (poss) => {
         // notice that we convert back from attacker/defender distinction.
-        let state;
+        const withChance = {
+          state: clone(state),
+          chance: possibility.chance * poss.chance
+        };
+        // if mine goes first, then it was attacker on first round and defender
+        // on second round.
         if (mineGoesFirst) {
-          state = {
-            // if mine goes first, then it was defending on the second round.
-            mine: poss.defender,
-            yours: poss.attacker,
-            chance: possibility.chance * poss.chance
-          };
+          withChance.state.self.active = poss.defender;
+          withChance.state.opponent.active = poss.attacker;
         } else {
-          state = {
-            mine: poss.attacker,
-            yours: poss.defender,
-            chance: possibility.chance * poss.chance
-          };
+          withChance.state.self.active = poss.attacker;
+          withChance.state.opponent.active = poss.defender;
         }
-        afterSecond.push(state);
+        afterSecond.push(withChance);
       });
       // console.log('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);
     });

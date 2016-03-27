@@ -240,49 +240,56 @@ describe('turn simulator', () => {
     });
   });
   describe('simulate', () => {
-    let mine;
-    let yours;
+    let state;
     beforeEach( () => {
-      mine = Object.assign({
+      const mine = Object.assign({
         hp: 100,
         maxhp: 100
       }, util.researchPokemonById('eevee'));
-      yours = Object.assign({
+      const yours = Object.assign({
         hp: 100,
         maxhp: 100
       }, util.researchPokemonById('meowth'));
+      state = {
+        self: {
+          active: mine
+        },
+        opponent: {
+          active: yours
+        }
+      };
     });
     fit('should produce results', () => {
       spyOn(Damage, 'goesFirst').and.returnValue(false);
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchMoveById('dragonrage');
-      const res = TurnSimulator.simulate(mine, yours, myMove, yourMove);
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
       // all these possibilities are equal and have a 25% chance. there are
       // four possibilities bc each move does either low or high damage, but
       // with this move, it's simpler bc the move always does 40 damage.
       expect(res.length).toEqual(4);
       expect(res[0].chance).toEqual(0.25);
       expect(res[3].chance).toEqual(0.25);
-      expect(res[0].mine.hp).toEqual(60);
-      expect(res[3].mine.hp).toEqual(60);
-      expect(res[0].yours.hp).toEqual(60);
-      expect(res[3].yours.hp).toEqual(60);
+      expect(res[0].state.self.active.hp).toEqual(60);
+      expect(res[3].state.self.active.hp).toEqual(60);
+      expect(res[0].state.opponent.active.hp).toEqual(60);
+      expect(res[3].state.opponent.active.hp).toEqual(60);
 
-      expect(res[0].mine.species).toEqual('Eevee');
-      expect(res[0].yours.species).toEqual('Meowth');
-      expect(res[3].mine.species).toEqual('Eevee');
-      expect(res[3].yours.species).toEqual('Meowth');
+      expect(res[0].state.self.active.species).toEqual('Eevee');
+      expect(res[0].state.opponent.active.species).toEqual('Meowth');
+      expect(res[3].state.self.active.species).toEqual('Eevee');
+      expect(res[3].state.opponent.active.species).toEqual('Meowth');
     });
     fit('should not swap mine and yours', () => {
       spyOn(Damage, 'goesFirst').and.returnValue(true);
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchMoveById('dragonrage');
-      const res = TurnSimulator.simulate(mine, yours, myMove, yourMove);
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
       expect(res.length).toEqual(4);
-      expect(res[0].mine.species).toEqual('Eevee');
-      expect(res[0].yours.species).toEqual('Meowth');
-      expect(res[3].mine.species).toEqual('Eevee');
-      expect(res[3].yours.species).toEqual('Meowth');
+      expect(res[0].state.self.active.species).toEqual('Eevee');
+      expect(res[0].state.opponent.active.species).toEqual('Meowth');
+      expect(res[3].state.self.active.species).toEqual('Eevee');
+      expect(res[3].state.opponent.active.species).toEqual('Meowth');
     });
   });
   fdescribe('evaluateNode', () => {
