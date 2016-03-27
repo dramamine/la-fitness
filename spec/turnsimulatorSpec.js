@@ -179,7 +179,7 @@ describe('turn simulator', () => {
       expect(stuff[2].chance).toEqual(0.3);
     });
   });
-  fdescribe('_simulateMove', () => {
+  describe('_simulateMove', () => {
     let attacker;
     let defender;
     beforeEach( () => {
@@ -239,7 +239,7 @@ describe('turn simulator', () => {
       expect(hps.size).toEqual(2);
     });
   });
-  fdescribe('simulate', () => {
+  describe('simulate', () => {
     let mine;
     let yours;
     beforeEach( () => {
@@ -285,6 +285,49 @@ describe('turn simulator', () => {
       expect(res[3].yours.species).toEqual('Meowth');
     });
   });
+  fdescribe('evaluateNode', () => {
+    let state;
+    let yourOptions;
+    beforeEach( () => {
+      state = {
+        self: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 105
+            },
+          }, util.researchPokemonById('onix'))
+        },
+        opponent: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 95
+            },
+          }, util.researchPokemonById('bulbasaur'))
+        },
+        field: 'dont lose this'
+      };
+      yourOptions = [
+        util.researchMoveById('waterpulse'),
+        util.researchMoveById('swordsdance'),
+        util.researchMoveById('toxic'),
+      ];
+    });
+    it('should notice the worst situation kills us', () => {
+      // onix is 4x weak to water.
+      const myMove = util.researchMoveById('splash');
+      const res = TurnSimulator.evaluateNode(state, myMove, yourOptions);
+      console.log(res);
+      expect(res.fitness).toBeLessThan(-5);
+      expect(res.state.self.active.dead).toBe(true);
+      expect(res.state.self.active.hp).toEqual(0);
+      expect(res.state.field).toBeTruthy();
+    });
+  });
+
   describe('iterate', () => {
     let state;
     let myOptions;

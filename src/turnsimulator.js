@@ -26,43 +26,71 @@ class TurnSimulator {
    * @return {[type]}             [description]
    */
   iterate(state, myOptions, yourOptions) {
-    const futures = [];
-    yourOptions = clone(yourOptions); // eslint-disable-line
-    myOptions.forEach((myChoice) => {
-      console.log('imagining I chose ', mychoice.id);
-      const whatCouldHappen = yourOptions.map((yourChoice) => {
-        // an array of {attacker, defender, chance} objects.
-        const possibilities = this.simulate(
-          state.self.active,
-          state.opponent.active,
-          myChoice,
-          yourChoice
-        );
-        possibilities.map((possibility) => {
-          // @TODO less lines of code?
-          const fitness = this.rate(possibility);
-          possibility.fitness = fitness;
-        });
-        const expectedValue = possibilities.reduce((prev, item) => {
-          return prev + item.fitness * item.chance;
-        }, 0);
-        // possibilities might be extraneous here...
-        return {possibilities, expectedValue, yourChoice};
-      }).sort( (a, b) => b.expectedValue - a.expectedValue);
-      console.log('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
-      console.log(whatCouldHappen[0]);
-      console.log('best-case scenario:', whatCouldHappen[3].yourChoice.id);
-      console.log(whatCouldHappen[whatCouldHappen.length - 1]);
+    const myNodes = myOptions.map((myChoice) => {
+      return this.evaluateNode(state, myChoice, clone(yourOptions));
     });
 
-    return futures;
+    return myNodes;
+  }
+
+  evaluateNode(state, myChoice, yourOptions, depth = 1) {
+    console.log('imagining I chose ', myChoice.id);
+
+    // simulate each of the opponent's choices
+    const whatCouldHappen = yourOptions.map((yourChoice) => {
+      console.log('looking at your choice:', yourChoice.id);
+      // an array of {attacker, defender, chance} objects.
+      const possibilities = this.simulate(
+        state.self.active,
+        state.opponent.active,
+        myChoice,
+        yourChoice
+      );
+      possibilities.forEach((possibility) => {
+        // @TODO less lines of code?
+        // console.log('gonna rate this:', possibility);
+        const fitness = this.rate(possibility);
+        possibility.fitness = fitness;
+      });
+      const expectedValue = possibilities.reduce((prev, item) => {
+        return prev + item.fitness * item.chance;
+      }, 0);
+      // possibilities might be extraneous here...
+      console.log('ev calculation:', yourChoice.id, expectedValue);
+      return {possibilities, expectedValue, yourChoice};
+    }).sort( (a, b) => a.expectedValue - b.expectedValue);
+    console.log('made it past teh loop');
+    // at this point, whatCouldHappen is an array of all the resulting situations
+    // from our opponent's choice. it's sorted by expected value, so the first
+    // entry is the worst situation for us. note that this is a big assumption
+    // on our part - maybe our opponent can't even perform that move, or maybe
+    // we switched into another Pokemon and our opponent would never have guessed
+    // about it IRL. but we're still making it.
+
+
+    console.log('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
+    console.log(whatCouldHappen[0]);
+    console.log('best-case scenario:', whatCouldHappen[whatCouldHappen.length - 1].yourChoice.id);
+    console.log(whatCouldHappen[whatCouldHappen.length - 1]);
+
+    console.log('minimax sez: OK, lets use worst case scenario.');
+    const worstCase = whatCouldHappen[0];
+    const updatedState = clone(state);
+    updatedState.self.active = worstCase.possibilities[0].mine;
+    updatedState.opponent.active = worstCase.possibilities[0].yours;
+    return {
+      state: updatedState,
+      fitness: worstCase.expectedValue,
+      yourChoice: worstCase.yourChoice,
+      depth: depth - 1
+    };
   }
 
   // get fitness & status of this team
-  rate({attacker, defender}) {
-    if (defender.dead) return STATUS_WEIGHTS.VICTORY;
-    if (attacker.dead) return STATUS_WEIGHTS.DEFEAT;
-    return 0;
+  rate({mine, yours}) {
+    if (yours.dead) return STATUS_WEIGHTS.VICTORY;
+    if (mine.dead) return STATUS_WEIGHTS.DEFEAT;
+    return (mine.hppct - yours.hppct) / 100;
   }
 
 
@@ -336,6 +364,7 @@ class TurnSimulator {
     if (res.hp === 0) {
       return this._kill(res);
     }
+    res.hppct = 100 * res.hp / res.maxhp;
     return res;
   }
 
