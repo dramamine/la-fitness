@@ -144,21 +144,25 @@ class TurnSimulator {
   simulate(state, myChoice, yourChoice) {
     const mine = clone(state.self.active);
     const yours = clone(state.opponent.active);
-    // console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
+    console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
-    // console.log('beginning simulator. mine is', mine.species, myChoice.id, yours.species, yourChoice.id);
-    // for convenience.
-    if (myChoice.name) {
+    if (myChoice.species) {
+      mine.switch = myChoice;
+    } else {
       mine.move = myChoice;
     }
-    if (yourChoice.name) {
+
+    if (yourChoice.species) {
+      yours.switch = yourChoice;
+    } else {
       yours.move = yourChoice;
     }
 
+
     let mineGoesFirst;
-    if (myChoice.species) { // I am switching out
+    if (mine.species) { // I am switching out
       mineGoesFirst = true;
-    } else if (yourChoice.species) { // you are switching out
+    } else if (yours.species) { // you are switching out
       mineGoesFirst = false;
     } else { // we are both performing moves
       mineGoesFirst = Damage.goesFirst(mine, yours);
@@ -171,33 +175,61 @@ class TurnSimulator {
 
     // first move.
     // afterFirst is an array of [attacker, defender, chance]
-    const afterFirst = this._simulateMove({attacker: first, defender: second});
+    let afterFirst;
+    if (first.move) {
+      afterFirst = this._simulateMove({attacker: first, defender: second});
+    } else {
+      const switched = first.switch;
+      switched.switch = first.switch; // ?? to know we switched?
+      afterFirst = [{attacker: switched, defender: second, chance: 1}];
+    }
 
     // console.log('after first move, mine is:', afterFirst[0].attacker.species);
     const afterSecond = [];
 
+    console.log('afterFirst', typeof afterFirst, afterFirst);
     afterFirst.forEach( (possibility) => {
-      // WHOA WATCH OUT FOR THE ATK/DEF SWAP
-      const res = this._simulateMove({attacker: possibility.defender, defender: possibility.attacker});
+      if (second.move) {
+        // next move.
+        // WHOA WATCH OUT FOR THE ATK/DEF SWAP
+        const res = this._simulateMove({
+          attacker: possibility.defender,
+          defender: possibility.attacker
+        });
 
-      // console.log('after second move, attacker is:', res[0].attacker.species);
-      res.forEach( (poss) => {
-        // notice that we convert back from attacker/defender distinction.
+        // console.log('after second move, attacker is:', res[0].attacker.species);
+        res.forEach( (poss) => {
+          // notice that we convert back from attacker/defender distinction.
+          const withChance = {
+            state: clone(state),
+            chance: possibility.chance * poss.chance
+          };
+          // if mine goes first, then it was attacker on first round and defender
+          // on second round.
+          if (mineGoesFirst) {
+            withChance.state.self.active = poss.defender;
+            withChance.state.opponent.active = poss.attacker;
+          } else {
+            withChance.state.self.active = poss.attacker;
+            withChance.state.opponent.active = poss.defender;
+          }
+          afterSecond.push(withChance);
+        });
+      } else {
+        // we both switched out, lawl.
+        const switched = second.switch;
+        switched.switch = second.switch;
+        // gotta maybe switch back.
         const withChance = {
           state: clone(state),
-          chance: possibility.chance * poss.chance
+          chance: 1
         };
-        // if mine goes first, then it was attacker on first round and defender
-        // on second round.
-        if (mineGoesFirst) {
-          withChance.state.self.active = poss.defender;
-          withChance.state.opponent.active = poss.attacker;
-        } else {
-          withChance.state.self.active = poss.attacker;
-          withChance.state.opponent.active = poss.defender;
-        }
+        // don't need conditionals here, bc mineGoesFirst is always true.
+        // (you can't have a move happen first and a switch happen second)
+        withChance.state.self.active = possibility.attacker;
+        withChance.state.opponent.active = switched;
         afterSecond.push(withChance);
-      });
+      }
       // console.log('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);
     });
 

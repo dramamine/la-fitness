@@ -162,23 +162,23 @@ describe('turn simulator', () => {
       expect(procs.chance).toBe(0.3);
     });
   });
-  describe('_normalize', () => {
-    it('should give equal chance to all things', () => {
-      const stuff = [{}, {}, {}, {}];
-      TurnSimulator._normalize(stuff);
-      expect(stuff[0].chance).toEqual(0.25);
-      expect(stuff[1].chance).toEqual(0.25);
-      expect(stuff[2].chance).toEqual(0.25);
-      expect(stuff[3].chance).toEqual(0.25);
-    });
-    it('should subtract an existing chance', () => {
-      const stuff = [{chance: 0.4}, {}, {}];
-      TurnSimulator._normalize(stuff);
-      expect(stuff[0].chance).toEqual(0.4);
-      expect(stuff[1].chance).toEqual(0.3);
-      expect(stuff[2].chance).toEqual(0.3);
-    });
-  });
+  // describe('_normalize', () => {
+  //   it('should give equal chance to all things', () => {
+  //     const stuff = [{}, {}, {}, {}];
+  //     TurnSimulator._normalize(stuff);
+  //     expect(stuff[0].chance).toEqual(0.25);
+  //     expect(stuff[1].chance).toEqual(0.25);
+  //     expect(stuff[2].chance).toEqual(0.25);
+  //     expect(stuff[3].chance).toEqual(0.25);
+  //   });
+  //   it('should subtract an existing chance', () => {
+  //     const stuff = [{chance: 0.4}, {}, {}];
+  //     TurnSimulator._normalize(stuff);
+  //     expect(stuff[0].chance).toEqual(0.4);
+  //     expect(stuff[1].chance).toEqual(0.3);
+  //     expect(stuff[2].chance).toEqual(0.3);
+  //   });
+  // });
   describe('_simulateMove', () => {
     let attacker;
     let defender;
@@ -292,7 +292,7 @@ describe('turn simulator', () => {
       expect(res[3].state.opponent.active.species).toEqual('Meowth');
     });
   });
-  fdescribe('evaluateNode', () => {
+  describe('evaluateNode', () => {
     let state;
     let yourOptions;
     beforeEach( () => {
@@ -335,7 +335,7 @@ describe('turn simulator', () => {
     });
   });
 
-  fdescribe('iterate', () => {
+  describe('iterate', () => {
     let state;
     let myOptions;
     let yourOptions;
@@ -371,7 +371,7 @@ describe('turn simulator', () => {
         util.researchMoveById('toxic'),
       ];
     });
-    fit('should produce some possibilities', () => {
+    it('should produce some possibilities', () => {
       const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
       expect(futures.length).toEqual(4);
       // const total = futures.reduce( (prev, future) => {
@@ -386,7 +386,7 @@ describe('turn simulator', () => {
       // });
       // expect(doubleswords.length).toBe(4);
     });
-    it('should handle possible volatile statuses', () => {
+    xit('should handle possible volatile statuses', () => {
       yourOptions = [
         util.researchMoveById('waterpulse')
       ];
@@ -481,7 +481,7 @@ describe('turn simulator', () => {
         util.researchMoveById('swordsdance'),
       ];
     });
-    it('should produce some possibilities', () => {
+    xit('should produce some possibilities', () => {
       const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
       const comparison = TurnSimulator.compare(futures);
       console.log(comparison);
