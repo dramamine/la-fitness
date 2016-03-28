@@ -148,12 +148,15 @@ class TurnSimulator {
 
     if (myChoice.species) {
       mine.switch = myChoice;
+      // not sure why I need this :\
+      delete mine.move;
     } else {
       mine.move = myChoice;
     }
 
     if (yourChoice.species) {
       yours.switch = yourChoice;
+      delete yours.move;
     } else {
       yours.move = yourChoice;
     }
@@ -162,6 +165,7 @@ class TurnSimulator {
     let mineGoesFirst;
     if (mine.species) { // I am switching out
       mineGoesFirst = true;
+      console.log('im first');
     } else if (yours.species) { // you are switching out
       mineGoesFirst = false;
     } else { // we are both performing moves
@@ -179,17 +183,19 @@ class TurnSimulator {
     if (first.move) {
       afterFirst = this._simulateMove({attacker: first, defender: second});
     } else {
-      const switched = first.switch;
-      switched.switch = first.switch; // ?? to know we switched?
+      const switched = clone(first.switch);
+      switched.switch = first.species; // ?? to know we switched?
+      console.log('switched:', switched);
       afterFirst = [{attacker: switched, defender: second, chance: 1}];
+      console.log('switched! afterFirst is now', afterFirst);
     }
 
     // console.log('after first move, mine is:', afterFirst[0].attacker.species);
     const afterSecond = [];
 
-    console.log('afterFirst', typeof afterFirst, afterFirst);
     afterFirst.forEach( (possibility) => {
       if (second.move) {
+        console.log('looking at possibility:', possibility);
         // next move.
         // WHOA WATCH OUT FOR THE ATK/DEF SWAP
         const res = this._simulateMove({
@@ -218,11 +224,11 @@ class TurnSimulator {
       } else {
         // we both switched out, lawl.
         const switched = second.switch;
-        switched.switch = second.switch;
+        switched.switch = second.species;
         // gotta maybe switch back.
         const withChance = {
           state: clone(state),
-          chance: 1
+          chance: possibility.chance
         };
         // don't need conditionals here, bc mineGoesFirst is always true.
         // (you can't have a move happen first and a switch happen second)
@@ -232,10 +238,11 @@ class TurnSimulator {
       }
       // console.log('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);
     });
+    console.log('afterSecond became:', JSON.stringify(afterSecond));
 
     if (!this._verifyTotalChance(afterSecond)) {
       Log.error('got wrong total from simulate');
-      Log.error(mine, yours, totalChance);
+      Log.error(mine, yours);
       Log.error(afterSecond);
     }
 

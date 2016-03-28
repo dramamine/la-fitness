@@ -11,12 +11,11 @@ class KOModded {
         chance: null
       };
     }
-
     if (!defender.hp || !defender.maxhp) {
       defender = Damage.assumeStats(defender); // eslint-disable-line
     }
 
-    if (defender.ability) defender.ability = '';
+    if (!defender.ability) defender.ability = '';
     // console.log('predictKO trace:', damage, defender);
 
     let hazards = 0;

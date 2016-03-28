@@ -291,6 +291,29 @@ describe('turn simulator', () => {
       expect(res[3].state.self.active.species).toEqual('Eevee');
       expect(res[3].state.opponent.active.species).toEqual('Meowth');
     });
+    it('should handle me switching out', () => {
+      console.log('HEAR ME OUT>> ');
+      console.log(state);
+      const myMove = util.researchPokemonById('mew');
+      const yourMove = util.researchMoveById('dragonrage');
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      expect(res[0].state.self.active.species).toEqual('Mew');
+      expect(res[0].state.opponent.active.species).toEqual('Meowth');
+    });
+    it('should handle you switching out', () => {
+      const myMove = util.researchMoveById('dragonrage');
+      const yourMove = util.researchPokemonById('mewtwo');
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      expect(res[0].state.self.active.species).toEqual('Eevee');
+      expect(res[0].state.opponent.active.species).toEqual('Mewtwo');
+    });
+    it('should handle us switching out', () => {
+      const myMove = util.researchPokemonById('klefki');
+      const yourMove = util.researchPokemonById('charmander');
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      expect(res[0].state.self.active.species).toEqual('Klefki');
+      expect(res[0].state.opponent.active.species).toEqual('Charmander');
+    });
   });
   describe('evaluateNode', () => {
     let state;
