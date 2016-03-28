@@ -25,12 +25,44 @@ class TurnSimulator {
    * representing the choices the opponent might make.
    * @return {[type]}             [description]
    */
-  iterate(state, myOptions, yourOptions) {
-    const myNodes = myOptions.map((myChoice) => {
-      return this.evaluateNode(state, myChoice, clone(yourOptions));
-    });
+  iterate(state, myOptions, yourOptions, depth = 1) {
+    const initialNode = {
+      state,
+      fitness: 0,
+      depth
+    };
+    let nodes = [initialNode];
+    while (true) { // eslint-disable-line
+      const nextNode = this.getNextNode(nodes);
+      if (!nextNode) break;
+      console.log(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
+      const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
+        const evaluated = this.evaluateNode(nextNode.state, myChoice,
+          clone(yourOptions), depth);
+        evaluated.prevNode = nextNode;
+        return evaluated;
+      });
+      nodes = nodes.concat(moreNodes);
+      // nextNode.futures = moreNodes;
+      nextNode.evaluated = true;
+    }
+    return nodes;
+  }
 
-    return myNodes;
+  /**
+   * Return the valid node with the highest fitness.
+   *
+   * @param  {[type]} nodes [description]
+   * @return {[type]}       [description]
+   */
+  getNextNode(nodes) {
+    const choices = nodes.filter(node => {
+      if (node.evaluated) return false;
+      if (node.depth === 0) return false;
+      return true;
+    }).sort((a, b) => b.fitness - a.fitness);
+    if (choices.length === 0) return null;
+    return choices[0];
   }
 
   evaluateNode(state, myChoice, yourOptions, depth = 1) {
@@ -39,7 +71,7 @@ class TurnSimulator {
     // simulate each of the opponent's choices
     const whatCouldHappen = yourOptions.map((yourChoice) => {
       console.log('looking at your choice:', yourChoice.id);
-      // an array of {attacker, defender, chance} objects.
+      // an array of {state, chance} objects.
       const possibilities = this.simulate(
         state,
         myChoice,
@@ -52,10 +84,10 @@ class TurnSimulator {
         return prev + item.fitness * item.chance;
       }, 0);
       // possibilities might be extraneous here...
-      console.log('ev calculation:', yourChoice.id, expectedValue);
+      // console.log('ev calculation:', yourChoice.id, expectedValue);
       return {possibilities, expectedValue, yourChoice};
     }).sort( (a, b) => a.expectedValue - b.expectedValue);
-    console.log('made it past teh loop');
+    // console.log('made it past teh loop');
     // at this point, whatCouldHappen is an array of all the resulting situations
     // from our opponent's choice. it's sorted by expected value, so the first
     // entry is the worst situation for us. note that this is a big assumption
@@ -64,12 +96,11 @@ class TurnSimulator {
     // about it IRL. but we're still making it.
 
 
-    console.log('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
-    console.log(whatCouldHappen[0]);
-    console.log('best-case scenario:', whatCouldHappen[whatCouldHappen.length - 1].yourChoice.id);
-    console.log(whatCouldHappen[whatCouldHappen.length - 1]);
+    // console.log('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
+    // console.log(whatCouldHappen[0]);
+    // console.log('best-case scenario:', whatCouldHappen[whatCouldHappen.length - 1].yourChoice.id);
+    // console.log(whatCouldHappen[whatCouldHappen.length - 1]);
 
-    console.log('minimax sez: OK, lets use worst case scenario.');
     const worstCase = whatCouldHappen[0];
     // @TODO might want to update this! it's just one of many possible future
     // states.
@@ -77,6 +108,7 @@ class TurnSimulator {
     return {
       state: updatedState,
       fitness: worstCase.expectedValue,
+      myChoice,
       yourChoice: worstCase.yourChoice,
       depth: depth - 1
     };

@@ -42,7 +42,7 @@ describe('turn simulator', () => {
   //     expect(reduced.length).toBe(5);
   //   });
   // });
-  fdescribe('_applySecondaries', () => {
+  describe('_applySecondaries', () => {
     it('should handle a self-boosting move', () => {
       const possible = {
         attacker: {},
@@ -259,7 +259,7 @@ describe('turn simulator', () => {
         }
       };
     });
-    fit('should produce results', () => {
+    it('should produce results', () => {
       spyOn(Damage, 'goesFirst').and.returnValue(false);
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchMoveById('dragonrage');
@@ -280,7 +280,7 @@ describe('turn simulator', () => {
       expect(res[3].state.self.active.species).toEqual('Eevee');
       expect(res[3].state.opponent.active.species).toEqual('Meowth');
     });
-    fit('should not swap mine and yours', () => {
+    it('should not swap mine and yours', () => {
       spyOn(Damage, 'goesFirst').and.returnValue(true);
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchMoveById('dragonrage');
@@ -335,7 +335,7 @@ describe('turn simulator', () => {
     });
   });
 
-  describe('iterate', () => {
+  fdescribe('iterate', () => {
     let state;
     let myOptions;
     let yourOptions;
@@ -371,20 +371,20 @@ describe('turn simulator', () => {
         util.researchMoveById('toxic'),
       ];
     });
-    it('should produce some possibilities', () => {
+    fit('should produce some possibilities', () => {
       const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
+      expect(futures.length).toEqual(4);
+      // const total = futures.reduce( (prev, future) => {
+      //   return prev + future.chance;
+      // }, 0);
+      // // 3 move
+      // expect(total).toBeCloseTo(3, 0);
 
-      const total = futures.reduce( (prev, future) => {
-        return prev + future.chance;
-      }, 0);
-      // 3 move
-      expect(total).toBeCloseTo(3, 0);
-
-      const doubleswords = futures.filter(({attacker, defender}) => {
-        return attacker.boosts && attacker.boosts.atk === 2 &&
-          defender.boosts && defender.boosts.atk === 2;
-      });
-      expect(doubleswords.length).toBe(4);
+      // const doubleswords = futures.filter(({attacker, defender}) => {
+      //   return attacker.boosts && attacker.boosts.atk === 2 &&
+      //     defender.boosts && defender.boosts.atk === 2;
+      // });
+      // expect(doubleswords.length).toBe(4);
     });
     it('should handle possible volatile statuses', () => {
       yourOptions = [
@@ -412,6 +412,28 @@ describe('turn simulator', () => {
       // different choices, and the 'chance' amounts are all based on which
       // choice we made.
       expect(yesproc * 4).toEqual(noproc);
+    });
+  });
+  describe('getNextNode', () => {
+    const someNodes = [
+      {evaluated: false, fitness: 0, depth: 1},
+      {evaluated: false, fitness: 1, depth: 1},
+      {evaluated: false, fitness: -1, depth: 1},
+      {evaluated: true, fitness: 0, depth: 1},
+      {evaluated: false, fitness: 0, depth: 0}
+    ];
+    it('should return the node with the best fitness', () => {
+      const chosen = TurnSimulator.getNextNode(someNodes);
+      console.log('this was chosen:', chosen);
+      expect(chosen.fitness).toEqual(1);
+    });
+    it('should not consider nodes that have been evaluated', () => {
+      const chosen = TurnSimulator.getNextNode([someNodes[3]]);
+      expect(chosen).toEqual(null);
+    });
+    it('should not consider nodes that are too deep', () => {
+      const chosen = TurnSimulator.getNextNode([someNodes[4]]);
+      expect(chosen).toEqual(null);
     });
   });
 // story time:
