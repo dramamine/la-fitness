@@ -2,6 +2,7 @@ import Damage from 'lib/damage';
 import KO from './komodded';
 // import Fitness from './fitness';
 import util from 'pokeutil';
+import Formats from 'data/formats';
 import Log from 'log';
 // import volatileStatuses from 'constants/volatileStatuses';
 
@@ -15,6 +16,26 @@ const clone = (x) => {
 };
 
 class TurnSimulator {
+  getMyOptions(state) {
+    const switches = state.self.reserve.filter(mon => {
+      return !mon.active && !mon.dead;
+    });
+    let moves = [];
+    if (state.self.active && state.self.active.moves) {
+      moves = clone(state.self.active.moves);
+    }
+    return switches.concat(moves);
+  }
+
+  getYourOptions(state) {
+    // @TODO maybe consider switches...
+    // @TODO consider history
+    // @TODO consider Choice Items
+    if (!state.opponent.active || !state.opponent.active.species) return null;
+    const moves = Formats[util.toId(state.opponent.active.species)].randomBattleMoves;
+    return moves.map(move => util.researchMoveById(move));
+  }
+
   /**
    * Iterate through each of our choices and the opponent's choices.
    *
@@ -35,7 +56,7 @@ class TurnSimulator {
     while (true) { // eslint-disable-line
       const nextNode = this.getNextNode(nodes);
       if (!nextNode) break;
-      console.log(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
+      Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
       const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
         const evaluated = this.evaluateNode(nextNode.state, myChoice,
           clone(yourOptions), depth);
@@ -66,11 +87,11 @@ class TurnSimulator {
   }
 
   evaluateNode(state, myChoice, yourOptions, depth = 1) {
-    console.log('imagining I chose ', myChoice.id);
+    Log.debug('imagining I chose ', myChoice.id);
 
     // simulate each of the opponent's choices
     const whatCouldHappen = yourOptions.map((yourChoice) => {
-      console.log('looking at your choice:', yourChoice.id);
+      Log.debug('looking at your choice:', yourChoice.id);
       // an array of {state, chance} objects.
       const possibilities = this.simulate(
         state,
@@ -84,10 +105,10 @@ class TurnSimulator {
         return prev + item.fitness * item.chance;
       }, 0);
       // possibilities might be extraneous here...
-      // console.log('ev calculation:', yourChoice.id, expectedValue);
+      // Log.debug('ev calculation:', yourChoice.id, expectedValue);
       return {possibilities, expectedValue, yourChoice};
     }).sort( (a, b) => a.expectedValue - b.expectedValue);
-    // console.log('made it past teh loop');
+    // Log.debug('made it past teh loop');
     // at this point, whatCouldHappen is an array of all the resulting situations
     // from our opponent's choice. it's sorted by expected value, so the first
     // entry is the worst situation for us. note that this is a big assumption
@@ -96,10 +117,10 @@ class TurnSimulator {
     // about it IRL. but we're still making it.
 
 
-    // console.log('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
-    // console.log(whatCouldHappen[0]);
-    // console.log('best-case scenario:', whatCouldHappen[whatCouldHappen.length - 1].yourChoice.id);
-    // console.log(whatCouldHappen[whatCouldHappen.length - 1]);
+    // Log.debug('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
+    // Log.debug(whatCouldHappen[0]);
+    // Log.debug('best-case scenario:', whatCouldHappen[whatCouldHappen.length - 1].yourChoice.id);
+    // Log.debug(whatCouldHappen[whatCouldHappen.length - 1]);
 
     const worstCase = whatCouldHappen[0];
     // @TODO might want to update this! it's just one of many possible future
@@ -144,7 +165,7 @@ class TurnSimulator {
   simulate(state, myChoice, yourChoice) {
     const mine = clone(state.self.active);
     const yours = clone(state.opponent.active);
-    console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
+    Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     if (myChoice.species) {
       mine.switch = myChoice;
@@ -165,14 +186,14 @@ class TurnSimulator {
     let mineGoesFirst;
     if (mine.species) { // I am switching out
       mineGoesFirst = true;
-      console.log('im first');
+      Log.debug('im first');
     } else if (yours.species) { // you are switching out
       mineGoesFirst = false;
     } else { // we are both performing moves
       mineGoesFirst = Damage.goesFirst(mine, yours);
     }
 
-    // console.log('mineGoesFirst? ', mineGoesFirst);
+    // Log.debug('mineGoesFirst? ', mineGoesFirst);
 
     const first = mineGoesFirst ? mine : yours;
     const second = mineGoesFirst ? yours : mine;
@@ -185,17 +206,17 @@ class TurnSimulator {
     } else {
       const switched = clone(first.switch);
       switched.switch = first.species; // ?? to know we switched?
-      console.log('switched:', switched);
+      Log.debug('switched:', switched);
       afterFirst = [{attacker: switched, defender: second, chance: 1}];
-      console.log('switched! afterFirst is now', afterFirst);
+      Log.debug('switched! afterFirst is now', afterFirst);
     }
 
-    // console.log('after first move, mine is:', afterFirst[0].attacker.species);
+    // Log.debug('after first move, mine is:', afterFirst[0].attacker.species);
     const afterSecond = [];
 
     afterFirst.forEach( (possibility) => {
       if (second.move) {
-        console.log('looking at possibility:', possibility);
+        Log.debug('looking at possibility:', possibility);
         // next move.
         // WHOA WATCH OUT FOR THE ATK/DEF SWAP
         const res = this._simulateMove({
@@ -203,7 +224,7 @@ class TurnSimulator {
           defender: possibility.attacker
         });
 
-        // console.log('after second move, attacker is:', res[0].attacker.species);
+        // Log.debug('after second move, attacker is:', res[0].attacker.species);
         res.forEach( (poss) => {
           // notice that we convert back from attacker/defender distinction.
           const withChance = {
@@ -236,9 +257,9 @@ class TurnSimulator {
         withChance.state.opponent.active = switched;
         afterSecond.push(withChance);
       }
-      // console.log('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);
+      // Log.debug('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);
     });
-    console.log('afterSecond became:', JSON.stringify(afterSecond));
+    Log.debug('afterSecond became:', JSON.stringify(afterSecond));
 
     if (!this._verifyTotalChance(afterSecond)) {
       Log.error('got wrong total from simulate');
@@ -267,13 +288,13 @@ class TurnSimulator {
    * @return {[type]}          [description]
    */
   _simulateMove({attacker, defender}) {
-    // console.log('simulatemove:', attacker, defender, chance);
+    // Log.debug('simulatemove:', attacker, defender, chance);
     attacker = JSON.parse(JSON.stringify(attacker)); // eslint-disable-line
     defender = JSON.parse(JSON.stringify(defender)); // eslint-disable-line
     const move = attacker.move;
 
 
-    // console.log(`${attacker.species} is casting ${move.id}` );
+    // Log.debug(`${attacker.species} is casting ${move.id}` );
     if (!move) {
       return {
         attacker,
@@ -283,7 +304,7 @@ class TurnSimulator {
     }
 
     const dmg = Damage.getDamageResult(attacker, defender, move);
-    // console.log('using dmg', dmg);
+    // Log.debug('using dmg', dmg);
     // const dmg = 40;
     const {koturns, kochance} = KO.predictKO(dmg, defender);
     const possible = [];
@@ -315,19 +336,19 @@ class TurnSimulator {
     }
     const applied = [];
     possible.forEach((event) => {
-      // console.log('looking at possible:');
-      // console.log(event.defender.hp, event.chance);
+      // Log.debug('looking at possible:');
+      // Log.debug(event.defender.hp, event.chance);
       const maybeProcs = this._applySecondaries(event, move);
       maybeProcs.forEach((proc) => {
-        // console.log('looking at proc:', proc.chance);
+        // Log.debug('looking at proc:', proc.chance);
         const res = {
           attacker: proc.attacker,
           defender: proc.defender,
           chance: (proc.chance * event.chance)
         };
-        // console.log(event.chance, proc.chance, res.chance);
+        // Log.debug(event.chance, proc.chance, res.chance);
         applied.push(res);
-        // console.log('just pushed a proc with chance', proc.chance * event.chance);
+        // Log.debug('just pushed a proc with chance', proc.chance * event.chance);
       });
     });
 
@@ -414,7 +435,7 @@ class TurnSimulator {
       }
     }
 
-    // console.log('inside secondaries:', noproc.defender.volatileStatus, procs.defender.volatileStatus);
+    // Log.debug('inside secondaries:', noproc.defender.volatileStatus, procs.defender.volatileStatus);
 
     return [noproc, procs];
   }
