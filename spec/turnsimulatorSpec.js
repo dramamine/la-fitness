@@ -243,11 +243,11 @@ describe('turn simulator', () => {
     let state;
     beforeEach( () => {
       const mine = Object.assign({
-        hp: 100,
+        hp: 78,
         maxhp: 100
       }, util.researchPokemonById('eevee'));
       const yours = Object.assign({
-        hp: 100,
+        hp: 91,
         maxhp: 100
       }, util.researchPokemonById('meowth'));
       state = {
@@ -270,10 +270,10 @@ describe('turn simulator', () => {
       expect(res.length).toEqual(4);
       expect(res[0].chance).toEqual(0.25);
       expect(res[3].chance).toEqual(0.25);
-      expect(res[0].state.self.active.hp).toEqual(60);
-      expect(res[3].state.self.active.hp).toEqual(60);
-      expect(res[0].state.opponent.active.hp).toEqual(60);
-      expect(res[3].state.opponent.active.hp).toEqual(60);
+      expect(res[0].state.self.active.hp).toEqual(38);
+      expect(res[3].state.self.active.hp).toEqual(38);
+      expect(res[0].state.opponent.active.hp).toEqual(51);
+      expect(res[3].state.opponent.active.hp).toEqual(51);
 
       expect(res[0].state.self.active.species).toEqual('Eevee');
       expect(res[0].state.opponent.active.species).toEqual('Meowth');
@@ -287,25 +287,39 @@ describe('turn simulator', () => {
       const res = TurnSimulator.simulate(state, myMove, yourMove);
       expect(res.length).toEqual(4);
       expect(res[0].state.self.active.species).toEqual('Eevee');
+      expect(res[0].state.self.active.hp).toEqual(38);
       expect(res[0].state.opponent.active.species).toEqual('Meowth');
+      expect(res[0].state.opponent.active.hp).toEqual(51);
       expect(res[3].state.self.active.species).toEqual('Eevee');
+      expect(res[3].state.self.active.hp).toEqual(38);
       expect(res[3].state.opponent.active.species).toEqual('Meowth');
+      expect(res[3].state.opponent.active.hp).toEqual(51);
     });
     it('should handle me switching out', () => {
       console.log('HEAR ME OUT>> ');
       console.log(state);
       const myMove = util.researchPokemonById('mew');
+      myMove.hp = 100;
+      myMove.maxhp = 100;
+      myMove.hppct = 100;
       const yourMove = util.researchMoveById('dragonrage');
       const res = TurnSimulator.simulate(state, myMove, yourMove);
       expect(res[0].state.self.active.species).toEqual('Mew');
+      expect(res[0].state.self.active.hp).toEqual(60);
       expect(res[0].state.opponent.active.species).toEqual('Meowth');
+      expect(res[0].state.opponent.active.hp).toEqual(91);
     });
     it('should handle you switching out', () => {
       const myMove = util.researchMoveById('dragonrage');
       const yourMove = util.researchPokemonById('mewtwo');
+      yourMove.hp = 100;
+      yourMove.maxhp = 100;
+      yourMove.hppct = 100;
       const res = TurnSimulator.simulate(state, myMove, yourMove);
       expect(res[0].state.self.active.species).toEqual('Eevee');
+      expect(res[0].state.self.active.hp).toEqual(78);
       expect(res[0].state.opponent.active.species).toEqual('Mewtwo');
+      expect(res[0].state.opponent.active.hp).toEqual(60);
     });
     it('should handle us switching out', () => {
       const myMove = util.researchPokemonById('klefki');
@@ -322,8 +336,8 @@ describe('turn simulator', () => {
       const myMove = util.researchMoveById('fakeout');
       const yourMove = util.researchMoveById('surf');
       const res = TurnSimulator.simulate(state, myMove, yourMove);
-      expect(res[0].state.self.active.hp).toEqual(100);
-      expect(res[0].state.opponent.active.hp).toBeLessThan(100);
+      expect(res[0].state.self.active.hp).toEqual(78);
+      expect(res[0].state.opponent.active.hp).toBeLessThan(91);
     });
   });
   describe('evaluateNode', () => {

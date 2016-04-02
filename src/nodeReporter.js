@@ -9,9 +9,12 @@ class NodeReporter {
   }
 
   _getNodeString(node) {
-    const mine = node.myChoice ? node.myChoice.id || node.myChoice.species : '??';
-    const yours = node.yourChoice ? node.yourChoice.id || node.yourChoice.species : '??';
-    return `me: ${mine}, you: ${yours}, fitness: ${node.fitness}`;
+    if (!node.myChoice) return '';
+    const mine = node.myChoice ? node.myChoice.id : '??';
+    const yours = node.yourChoice ? node.yourChoice.id : '??';
+    // console.log(JSON.stringify(node));
+    return `me: ${mine}, you: ${yours}, fitness: ${node.fitness}, depth: ${node.depth}
+    (my hp: ${node.state.self.active.hp} vs your hp: ${node.state.opponent.active.hp})`;
   }
 }
 

@@ -55,7 +55,10 @@ class TurnSimulator {
     let nodes = [initialNode];
     while (true) { // eslint-disable-line
       const nextNode = this.getNextNode(nodes);
-      if (!nextNode) break;
+      if (!nextNode) {
+        Log.debug('ran out of nodes to check.');
+        break;
+      }
       Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
       const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
         Log.debug('my choice:' + JSON.stringify(myChoice));
@@ -92,7 +95,7 @@ class TurnSimulator {
 
     // simulate each of the opponent's choices
     const whatCouldHappen = yourOptions.map((yourChoice) => {
-      Log.debug('looking at your choice:' + yourChoice.id);
+      // Log.debug('looking at your choice:' + yourChoice.id);
       // an array of {state, chance} objects.
       const possibilities = this.simulate(
         state,
@@ -101,6 +104,10 @@ class TurnSimulator {
       );
       possibilities.forEach((possibility) => {
         possibility.fitness = this.rate(possibility.state);
+        if (isNaN(possibility.fitness)) {
+          console.error('stop the presses! this state was rated wrong');
+          console.error(possibility.state);
+        }
       });
       const expectedValue = possibilities.reduce((prev, item) => {
         return prev + item.fitness * item.chance;
@@ -166,7 +173,7 @@ class TurnSimulator {
   simulate(state, myChoice, yourChoice) {
     const mine = clone(state.self.active);
     const yours = clone(state.opponent.active);
-    // Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
+    Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     if (myChoice.species) {
       mine.switch = myChoice;
@@ -177,24 +184,24 @@ class TurnSimulator {
     }
 
     if (yourChoice.species) {
+      // console.log('cool, yours is switching');
       yours.switch = yourChoice;
       delete yours.move;
     } else {
       yours.move = yourChoice;
     }
 
-
     let mineGoesFirst;
-    if (mine.species) { // I am switching out
+    if (mine.switch) { // I am switching out
       mineGoesFirst = true;
       // Log.debug('im first');
-    } else if (yours.species) { // you are switching out
+    } else if (yours.switch) { // you are switching out
       mineGoesFirst = false;
     } else { // we are both performing moves
       mineGoesFirst = Damage.goesFirst(mine, yours);
     }
 
-    // Log.debug('mineGoesFirst? ', mineGoesFirst);
+    // Log.debug('mineGoesFirst? ' + mineGoesFirst);
 
     const first = mineGoesFirst ? mine : yours;
     const second = mineGoesFirst ? yours : mine;
@@ -217,7 +224,7 @@ class TurnSimulator {
 
     afterFirst.forEach( (possibility) => {
       if (second.move) {
-        // Log.debug('looking at possibility:', possibility);
+        Log.debug('looking at possibility:' + JSON.stringify(possibility));
         // next move.
         // WHOA WATCH OUT FOR THE ATK/DEF SWAP
         const res = this._simulateMove({
@@ -225,7 +232,9 @@ class TurnSimulator {
           defender: possibility.attacker
         });
 
-        // Log.debug('after second move, attacker is:', res[0].attacker.species);
+        Log.debug('after second move, attacker is:' + res[0].attacker.species);
+        Log.debug('attacker hp:' + res[0].attacker.hp);
+        Log.debug('defender hp:' + res[0].defender.hp);
         res.forEach( (poss) => {
           // notice that we convert back from attacker/defender distinction.
           const withChance = {

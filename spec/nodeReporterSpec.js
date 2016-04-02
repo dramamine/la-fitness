@@ -2,16 +2,18 @@ import util from 'pokeutil';
 import turnsimulator from 'la-fitness/src/turnsimulator';
 import nodeReporter from 'la-fitness/src/nodeReporter';
 
-fdescribe('nodeReporter', () => {
+describe('nodeReporter', () => {
   let state;
   beforeEach( () => {
     const mine = Object.assign({
       hp: 100,
-      maxhp: 100
+      maxhp: 100,
+      hppct: 100
     }, util.researchPokemonById('eevee'));
     const yours = Object.assign({
       hp: 100,
-      maxhp: 100
+      maxhp: 100,
+      hppct: 100
     }, util.researchPokemonById('meowth'));
     state = {
       self: {
@@ -28,15 +30,23 @@ fdescribe('nodeReporter', () => {
       util.researchMoveById('blazekick')
     ];
     state.self.reserve = [
-      util.researchPokemonById('bulbasaur')
+      Object.assign(util.researchPokemonById('bulbasaur'), {
+        hp: 100,
+        maxhp: 100,
+        hppct: 100
+      })
     ];
+
     const myOptions = turnsimulator.getMyOptions(state);
+    console.log(`iterating through ${myOptions.length} options`);
     const yourOptions = turnsimulator.getYourOptions(state);
+    console.log(`iterating through ${yourOptions.length} options`);
 
     const nodes = turnsimulator.iterate(state, myOptions, yourOptions, 1);
     const reports = nodes.map((node) => {
       const report = nodeReporter.report(node);
       console.log(report);
+      // console.log(node);
       return report;
     });
   });
