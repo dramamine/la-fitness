@@ -4,7 +4,7 @@ import KO from './komodded';
 import util from 'pokeutil';
 import Formats from 'data/formats';
 import Log from 'log';
-// import volatileStatuses from 'constants/volatileStatuses';
+import volatileStatuses from 'constants/volatileStatuses';
 
 const STATUS_WEIGHTS = {
   'VICTORY': 10,
@@ -58,6 +58,7 @@ class TurnSimulator {
       if (!nextNode) break;
       Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
       const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
+        Log.debug('my choice:' + JSON.stringify(myChoice));
         const evaluated = this.evaluateNode(nextNode.state, myChoice,
           clone(yourOptions), depth);
         evaluated.prevNode = nextNode;
@@ -87,11 +88,11 @@ class TurnSimulator {
   }
 
   evaluateNode(state, myChoice, yourOptions, depth = 1) {
-    Log.debug('imagining I chose ', myChoice.id);
+    Log.debug('imagining I chose ' + myChoice.id);
 
     // simulate each of the opponent's choices
     const whatCouldHappen = yourOptions.map((yourChoice) => {
-      Log.debug('looking at your choice:', yourChoice.id);
+      Log.debug('looking at your choice:' + yourChoice.id);
       // an array of {state, chance} objects.
       const possibilities = this.simulate(
         state,
@@ -165,7 +166,7 @@ class TurnSimulator {
   simulate(state, myChoice, yourChoice) {
     const mine = clone(state.self.active);
     const yours = clone(state.opponent.active);
-    Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
+    // Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     if (myChoice.species) {
       mine.switch = myChoice;
@@ -186,7 +187,7 @@ class TurnSimulator {
     let mineGoesFirst;
     if (mine.species) { // I am switching out
       mineGoesFirst = true;
-      Log.debug('im first');
+      // Log.debug('im first');
     } else if (yours.species) { // you are switching out
       mineGoesFirst = false;
     } else { // we are both performing moves
@@ -206,9 +207,9 @@ class TurnSimulator {
     } else {
       const switched = clone(first.switch);
       switched.switch = first.species; // ?? to know we switched?
-      Log.debug('switched:', switched);
       afterFirst = [{attacker: switched, defender: second, chance: 1}];
-      Log.debug('switched! afterFirst is now', afterFirst);
+      // Log.debug('switched! afterFirst is now');
+      // Log.debug(afterFirst);
     }
 
     // Log.debug('after first move, mine is:', afterFirst[0].attacker.species);
@@ -216,7 +217,7 @@ class TurnSimulator {
 
     afterFirst.forEach( (possibility) => {
       if (second.move) {
-        Log.debug('looking at possibility:', possibility);
+        // Log.debug('looking at possibility:', possibility);
         // next move.
         // WHOA WATCH OUT FOR THE ATK/DEF SWAP
         const res = this._simulateMove({
@@ -259,13 +260,18 @@ class TurnSimulator {
       }
       // Log.debug('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);
     });
-    Log.debug('afterSecond became:', JSON.stringify(afterSecond));
+    // Log.debug('afterSecond became:' + JSON.stringify(afterSecond));
 
     if (!this._verifyTotalChance(afterSecond)) {
       Log.error('got wrong total from simulate');
       Log.error(mine, yours);
       Log.error(afterSecond);
     }
+
+    // remove volatile statuses
+    // @TODO this is dangerous/lazy
+    if (mine.active && mine.active.volatileStatus) mine.active.volatileStatus = '';
+    if (yours.active && yours.active.volatileStatus) yours.active.volatileStatus = '';
 
     return afterSecond;
   }
@@ -294,13 +300,22 @@ class TurnSimulator {
     const move = attacker.move;
 
 
-    // Log.debug(`${attacker.species} is casting ${move.id}` );
+    Log.debug(`${attacker.species} is casting ${move.id}` );
     if (!move) {
-      return {
+      return [{
         attacker,
         defender,
         chance: 1
-      };
+      }];
+    }
+
+    if (attacker.volatileStatus === volatileStatuses.FLINCH) {
+      attacker.volatileStatus = '';
+      return [{
+        attacker,
+        defender,
+        chance: 1
+      }];
     }
 
     const dmg = Damage.getDamageResult(attacker, defender, move);
@@ -347,7 +362,7 @@ class TurnSimulator {
           chance: (proc.chance * event.chance)
         };
         // Log.debug(event.chance, proc.chance, res.chance);
-        applied.push(res);
+        if (res.chance > 0) applied.push(res);
         // Log.debug('just pushed a proc with chance', proc.chance * event.chance);
       });
     });

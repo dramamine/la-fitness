@@ -314,6 +314,17 @@ describe('turn simulator', () => {
       expect(res[0].state.self.active.species).toEqual('Klefki');
       expect(res[0].state.opponent.active.species).toEqual('Charmander');
     });
+    it('should handle fakeout', () => {
+      // fakeout goes first
+      // opponent always flinches.
+      // expect opponent to take damage and I'm scott-free.
+      spyOn(Damage, 'goesFirst').and.returnValue(true);
+      const myMove = util.researchMoveById('fakeout');
+      const yourMove = util.researchMoveById('surf');
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      expect(res[0].state.self.active.hp).toEqual(100);
+      expect(res[0].state.opponent.active.hp).toBeLessThan(100);
+    });
   });
   describe('evaluateNode', () => {
     let state;
