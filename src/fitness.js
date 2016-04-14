@@ -8,8 +8,7 @@ import Util from 'pokeutil';
 
 class Fitness {
 
-
-  partyFitness(party, side) {
+  partyFitness(party, side = {}) {
     let sumHp = party.reduce( (sum, curr) => {
       return sum + (curr.hppct || 0);
     }, 0);
@@ -19,7 +18,7 @@ class Fitness {
     }).length;
 
     if (side.spikes) {
-      let spikesFactor = 1 / ( (5 - side.spikes) * 2); // trust me. valid for 1-3
+      const spikesFactor = 1 / ( (5 - side.spikes) * 2); // trust me. valid for 1-3
       const potentialDamage = (alive - 1) * spikesFactor;
       sumHp -= Math.floor(potentialDamage, 0);
     }

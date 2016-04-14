@@ -1,5 +1,6 @@
 import Gaussian from './gaussian';
 import Damage from 'lib/damage';
+import Typechart from 'lib/typechart';
 
 import distributions from './probability-distributions';
 
@@ -20,7 +21,7 @@ class KOModded {
 
     let hazards = 0;
     if (field.isSR && defender.ability !== 'Magic Guard') {
-      const effectiveness = typeChart.Rock[defender.types[0]] * (defender.types[1] ? typeChart.Rock[defender.types[1]] : 1);
+      const effectiveness = Typechart.compare('Rock', defender.types);
       hazards += Math.floor(effectiveness * defender.maxhp / 8);
     }
     if (defender.types.indexOf('Flying') === -1 &&

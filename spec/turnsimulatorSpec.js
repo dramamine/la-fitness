@@ -383,6 +383,41 @@ describe('turn simulator', () => {
     });
   });
 
+  describe('updateMoves', () => {
+    const mine = {
+      moves: [{
+        id: 'splash',
+        pp: 20
+      }, {
+        id: 'waterfall',
+        pp: 20
+      }],
+      item: ''
+    };
+
+    it('should subtract one pp', () => {
+      const res = TurnSimulator.updateMoves(mine, 'splash');
+      expect(res.find(move => move.id === 'splash').pp).toEqual(19);
+    });
+    it('should subtract final pp', () => {
+      mine.moves.find(move => move.id === 'splash').pp = 1;
+      const res = TurnSimulator.updateMoves(mine, 'splash');
+      expect(res.find(move => move.id === 'splash').pp).toEqual(0);
+      expect(res.find(move => move.id === 'splash').disabled).toBe(true);
+    });
+    it('should handle choice items', () => {
+      mine.moves.push({
+        id: 'icebeam',
+        pp: 20
+      });
+      mine.item = 'choice band';
+      const res = TurnSimulator.updateMoves(mine, 'icebeam');
+      expect(res.find(move => move.id === 'icebeam').disabled).toBeFalsy();
+      expect(res.find(move => move.id === 'waterfall').disabled).toBe(true);
+      expect(res.find(move => move.id === 'splash').disabled).toBe(true);
+    });
+  });
+
   describe('iterate', () => {
     let state;
     let myOptions;

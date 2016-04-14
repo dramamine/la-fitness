@@ -27,6 +27,20 @@ class TurnSimulator {
     return switches.concat(moves);
   }
 
+  // _checkSituationalMoves(state, mon, move) {
+  //   switch (move.id) {
+  //   case 'fakeout':
+  //     if (state.events.find(event => event.move === 'fakeout' &&
+  //       event.from === state.mon.species )) {
+  //       return false;
+  //     }
+  //     break;
+  //   default:
+  //     break;
+  //   }
+  //   return true;
+  // }
+
   getYourOptions(state) {
     // @TODO maybe consider switches...
     // @TODO consider history
@@ -131,16 +145,49 @@ class TurnSimulator {
     // Log.debug(whatCouldHappen[whatCouldHappen.length - 1]);
 
     const worstCase = whatCouldHappen[0];
-    // @TODO might want to update this! it's just one of many possible future
-    // states.
-    const updatedState = worstCase.possibilities[0].state;
-    return {
-      state: updatedState,
+
+    const evaluated = {
+      state: worstCase.possibilities[0].state,
       fitness: worstCase.expectedValue,
       myChoice,
       yourChoice: worstCase.yourChoice,
       depth: depth - 1
     };
+
+    // const betterCase = whatCouldHappen[1];
+    // this.considerSecondWorstCase(state, worstCase, betterCase);
+
+    return evaluated;
+  }
+
+  /**
+   * @TODO
+   *
+   *
+   * @param  {[type]} state      [description]
+   * @param  {[type]} worstCase  [description]
+   * @param  {[type]} betterCase [description]
+   * @return {[type]}            [description]
+   */
+  considerSecondWorstCase(state, worstCase, betterCase) {
+    let risk = 1;
+
+    // has used this before, but decides not to this turn
+    const hasUsedThisBefore = 0.5;
+    if (state.opponent.active.knownMoves[(worstCase.yourChoice.id)]) {
+      risk *= hasUsedThisBefore;
+    } else {
+      // chance he doesn't have this move
+      const knownMoves = Object.keys(state.opponent.active.knownMoves).length;
+      const emptySlots = 4 - knownMoves;
+      if (emptySlots < 0 || emptySlots > 4) {
+        Log.error('calculated emptySlots wrong', state.opponent.active.knownMoves);
+      }
+      const possibleMoves = Formats[state.opponent.active.id].randomBattleMoves.length
+        - knownMoves;
+      const chanceHeHasMoveWeHaventSeen = emptySlots / possibleMoves;
+      risk *= 1 - chanceHeHasMoveWeHaventSeen;
+    }
   }
 
   // get fitness & status of this team
@@ -282,7 +329,41 @@ class TurnSimulator {
     if (mine.active && mine.active.volatileStatus) mine.active.volatileStatus = '';
     if (yours.active && yours.active.volatileStatus) yours.active.volatileStatus = '';
 
+    // disable moves and stuff
+    if (myChoice.move) {
+      mine.active.moves = this.updateMoves(mine.active, myChoice.id);
+    }
+    if (yourChoice.move) {
+      yours.active.moves = this.updateMoves(yours.active, yourChoice.id);
+    }
+
     return afterSecond;
+  }
+
+  /**
+   * Update moves to account for the fact that they were used
+   * @param  {Object} mon     The pokemon that did the move
+   * @param  {String} myChoice The ID of the move made.
+   * @return {Array<Move>}   Updated moves
+   */
+  updateMoves(mon, myChoice) {
+    const chosen = mon.moves.find(move => move.id === myChoice);
+    chosen.pp -= 1;
+    if (chosen.pp === 0) chosen.disabled = true;
+
+    // choice items disable all other moves
+    if (mon.item.toLowerCase().indexOf('choice') >= 0) {
+      mon.moves.forEach(move => {
+        if (move === chosen) return;
+        move.disabled = true;
+      });
+    }
+
+    // fakeout only works on the first turn out.
+    if (myChoice === 'fakeout') {
+      chosen.disabled = true;
+    }
+    return mon.moves;
   }
 
   // swap(simulation) {
