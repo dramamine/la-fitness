@@ -383,7 +383,7 @@ class TurnSimulator {
    * @param  {[type]} move     [description]
    * @return {[type]}          [description]
    */
-  _simulateMove({attacker, defender}) {
+  _simulateMove({ attacker, defender }) {
     // Log.debug('simulatemove:', attacker, defender, chance);
     attacker = JSON.parse(JSON.stringify(attacker)); // eslint-disable-line
     defender = JSON.parse(JSON.stringify(defender)); // eslint-disable-line
@@ -399,6 +399,25 @@ class TurnSimulator {
       }];
     }
 
+    // so technically, this really shouldn't be attacked to Pokemon, but since
+    // I don't have access to 'state' itself, I gotta just throw this on here.
+    if (move.sideCondition) {
+      if (move.target === 'allySide') {
+        if (!attacker.sideConditions) {
+          attacker.sideConditions = [];
+        }
+        attacker.sideConditions.push(move.sideCondition);
+      } else if (move.target === 'foeSide') {
+        if (!defender.sideConditions) {
+          defender.sideConditions = [];
+        }
+        defender.sideConditions.push(move.sideCondition);
+      } else {
+        Log.error('Not sure what to do with this side effect. target was ' + move.target);
+        Log.error(move);
+      }
+    }
+
     if (attacker.volatileStatus === volatileStatuses.FLINCH) {
       attacker.volatileStatus = '';
       return [{
@@ -411,12 +430,12 @@ class TurnSimulator {
     const dmg = Damage.getDamageResult(attacker, defender, move);
     // Log.debug('using dmg', dmg);
     // const dmg = 40;
-    const {koturns, kochance} = KO.predictKO(dmg, defender);
+    const { koturns, kochance } = KO.predictKO(dmg, defender);
     const possible = [];
     if (koturns === 1) {
       possible.push({
         attacker: clone(attacker),
-        defender: _kill(clone(defender)),
+        defender: this._kill(clone(defender)),
         chance: kochance
       });
       if (kochance < 1) {
@@ -443,7 +462,7 @@ class TurnSimulator {
     possible.forEach((event) => {
       // Log.debug('looking at possible:');
       // Log.debug(event.defender.hp, event.chance);
-      const maybeProcs = this._applySecondaries(event, move);
+      const maybeProcs = this._applySecondaries(event, move, defender.hp - event.defender.hp);
       maybeProcs.forEach((proc) => {
         // Log.debug('looking at proc:', proc.chance);
         const res = {
@@ -478,7 +497,7 @@ class TurnSimulator {
    * @param  {[type]} move     [description]
    * @return {[type]}          [description]
    */
-  _applySecondaries(possible, move) {
+  _applySecondaries(possible, move, dmg = 0) {
     // handle moves that always boost or unboost
     if (move.boosts) {
       if (move.target === 'self') {
@@ -488,6 +507,16 @@ class TurnSimulator {
         possible.defender.boosts = util.boostCombiner(possible.defender.boosts,
           move.boosts);
       }
+    }
+
+    if (move.heal) {
+      possible.attacker.hp = Math.min(possible.attacker.maxhp,
+        possible.attacker.hp + (possible.attacker.maxhp * move.heal[0] / move.heal[1]));
+    }
+
+    if (move.drain) {
+      possible.attacker.hp = Math.min(possible.attacker.maxhp,
+        possible.attacker.hp + (dmg * move.drain[0] / move.drain[1]));
     }
 
     // handle status moves
@@ -503,6 +532,15 @@ class TurnSimulator {
         possible.defender.volatileStatus = move.volatileStatus;
       }
     }
+
+    if (move.self) {
+      if (move.self.boosts) { // ex. 'superpower'
+        possible.attacker.boosts = util.boostCombiner(possible.attacker.boosts,
+          move.boosts);
+      } else if (move.self.volatileStatus) { // ex. 'roost'
+        possible.attacker.volatileStatus = move.volatileStatus;
+      }
+    };
 
     if (!move.secondary) {
       return [{
