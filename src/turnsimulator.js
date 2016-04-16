@@ -2,215 +2,10 @@ import Damage from 'lib/damage';
 import KO from './komodded';
 // import Fitness from './fitness';
 import util from 'pokeutil';
-import Formats from 'data/formats';
 import Log from 'log';
 import volatileStatuses from 'constants/volatileStatuses';
 
-const STATUS_WEIGHTS = {
-  'VICTORY': 10,
-  'DEFEAT': -10
-};
-
-const clone = (x) => {
-  return JSON.parse(JSON.stringify(x));
-};
-
 class TurnSimulator {
-  getMyOptions(state) {
-    const switches = state.self.reserve.filter(mon => {
-      return !mon.active && !mon.dead;
-    });
-    let moves = [];
-    if (!state.forceSwitch && !state.teamPreview && state.self.active &&
-      state.self.active.moves) {
-      moves = clone(state.self.active.moves)
-        .filter(move => !move.disabled);
-    }
-    return switches.concat(moves);
-  }
-
-  // _checkSituationalMoves(state, mon, move) {
-  //   switch (move.id) {
-  //   case 'fakeout':
-  //     if (state.events.find(event => event.move === 'fakeout' &&
-  //       event.from === state.mon.species )) {
-  //       return false;
-  //     }
-  //     break;
-  //   default:
-  //     break;
-  //   }
-  //   return true;
-  // }
-
-  getYourOptions(state) {
-    // @TODO maybe consider switches...
-    // @TODO consider history
-    // @TODO consider Choice Items
-    if (!state.opponent.active || !state.opponent.active.species) return null;
-    const moves = Formats[util.toId(state.opponent.active.species)].randomBattleMoves;
-    return moves.map(move => util.researchMoveById(move));
-  }
-
-  /**
-   * Iterate through each of our choices and the opponent's choices.
-   *
-   * @param  {[type]} state       The original state.
-   * @param  {[type]} myOptions   An array of moves and Pokemon objects
-   * representing the choices we might make.
-   * @param  {[type]} yourOptions An array of moves and Pokemon objects
-   * representing the choices the opponent might make.
-   * @return {[type]}             [description]
-   */
-  iterate(state, myOptions, yourOptions, depth = 1) {
-    const initialNode = {
-      state,
-      fitness: 0,
-      depth
-    };
-    let nodes = [initialNode];
-    while (true) { // eslint-disable-line
-      const nextNode = this.getNextNode(nodes);
-      if (!nextNode) {
-        Log.debug('ran out of nodes to check.');
-        break;
-      }
-      Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
-      const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
-        Log.debug('my choice:' + JSON.stringify(myChoice));
-        const evaluated = this.evaluateNode(nextNode.state, myChoice,
-          clone(yourOptions), depth);
-        console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
-          `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
-        evaluated.prevNode = nextNode;
-        return evaluated;
-      });
-      nodes = nodes.concat(moreNodes);
-      // nextNode.futures = moreNodes;
-      nextNode.evaluated = true;
-    }
-    return nodes;
-  }
-
-  /**
-   * Return the valid node with the highest fitness.
-   *
-   * @param  {[type]} nodes [description]
-   * @return {[type]}       [description]
-   */
-  getNextNode(nodes) {
-    const choices = nodes.filter(node => {
-      if (node.evaluated) return false;
-      if (node.depth === 0) return false;
-      return true;
-    }).sort((a, b) => b.fitness - a.fitness);
-    if (choices.length === 0) return null;
-    return choices[0];
-  }
-
-  evaluateNode(state, myChoice, yourOptions, depth = 1) {
-    Log.debug('imagining I chose ' + myChoice.id);
-
-    // simulate each of the opponent's choices
-    const whatCouldHappen = yourOptions.map((yourChoice) => {
-      // Log.debug('looking at your choice:' + yourChoice.id);
-      // an array of {state, chance} objects.
-      const possibilities = this.simulate(
-        state,
-        myChoice,
-        yourChoice
-      );
-      possibilities.forEach((possibility) => {
-        possibility.fitness = this.rate(possibility.state);
-        if (isNaN(possibility.fitness)) {
-          console.error('stop the presses! this state was rated wrong');
-          console.error(possibility.state);
-        }
-      });
-      const expectedValue = possibilities.reduce((prev, item) => {
-        return prev + item.fitness * item.chance;
-      }, 0);
-      // possibilities might be extraneous here...
-      // Log.debug('ev calculation:', yourChoice.id, expectedValue);
-      return {possibilities, expectedValue, yourChoice};
-    }).sort( (a, b) => a.expectedValue - b.expectedValue);
-    // Log.debug('made it past teh loop');
-    // at this point, whatCouldHappen is an array of all the resulting situations
-    // from our opponent's choice. it's sorted by expected value, so the first
-    // entry is the worst situation for us. note that this is a big assumption
-    // on our part - maybe our opponent can't even perform that move, or maybe
-    // we switched into another Pokemon and our opponent would never have guessed
-    // about it IRL. but we're still making it.
-
-
-    // Log.debug('worst-case scenario:', whatCouldHappen[0].yourChoice.id);
-    // Log.debug(whatCouldHappen[0]);
-    // Log.debug('best-case scenario:', whatCouldHappen[whatCouldHappen.length - 1].yourChoice.id);
-    // Log.debug(whatCouldHappen[whatCouldHappen.length - 1]);
-
-    const worstCase = whatCouldHappen[0];
-    const betterCase = whatCouldHappen[1];
-
-    const evaluated = {
-      state: worstCase.possibilities[0].state,
-      fitness: worstCase.expectedValue,
-      myChoice,
-      yourChoice: worstCase.yourChoice,
-      depth: depth - 1,
-      betterCase: {
-        risk: this.considerSecondWorstCase(state, worstCase, betterCase),
-        fitness: betterCase.fitness
-      }
-    };
-
-    return evaluated;
-  }
-
-  /**
-   * @TODO
-   *
-   *
-   * @param  {[type]} state      [description]
-   * @param  {[type]} worstCase  [description]
-   * @param  {[type]} betterCase [description]
-   * @return {[type]}            [description]
-   */
-  considerSecondWorstCase(state, worstCase, betterCase) {
-    let risk = 1;
-
-    // has used this before, but decides not to this turn
-    const hasUsedThisBefore = 0.5;
-    if (state.opponent.active.seenMoves &&
-      state.opponent.active.seenMoves.indexOf(worstCase.yourChoice.id) > -1) {
-      risk *= hasUsedThisBefore;
-    } else {
-      // chance he doesn't have this move
-      let known = 0;
-      if (state.opponent.active.seenMoves) {
-        known = state.opponent.active.seenMoves.length;
-      }
-      const emptySlots = 4 - known;
-      if (emptySlots < 0 || emptySlots > 4) {
-        Log.error('calculated emptySlots wrong', state.opponent.active.seenMoves);
-      }
-      const possibleMoves = Formats[state.opponent.active.id].randomBattleMoves.length
-        - known;
-      const chanceHeHasMoveWeHaventSeen = emptySlots / possibleMoves;
-      risk *= 1 - chanceHeHasMoveWeHaventSeen;
-    }
-
-    return risk;
-  }
-
-  // get fitness & status of this team
-  rate(state) {
-    const mine = state.self.active;
-    const yours = state.opponent.active;
-    if (yours.dead) return STATUS_WEIGHTS.VICTORY;
-    if (mine.dead) return STATUS_WEIGHTS.DEFEAT;
-    return (mine.hppct - yours.hppct) / 100;
-  }
-
 
   /**
    * Take a given state, and simulate what the attacker and defender will look
@@ -230,8 +25,8 @@ class TurnSimulator {
    * the Pokemon was switched out?
    */
   simulate(state, myChoice, yourChoice) {
-    const mine = clone(state.self.active);
-    const yours = clone(state.opponent.active);
+    const mine = util.clone(state.self.active);
+    const yours = util.clone(state.opponent.active);
     Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     if (myChoice.species) {
@@ -271,7 +66,7 @@ class TurnSimulator {
     if (first.move) {
       afterFirst = this._simulateMove({attacker: first, defender: second});
     } else {
-      const switched = clone(first.switch);
+      const switched = util.clone(first.switch);
       switched.switch = first.species; // ?? to know we switched?
       afterFirst = [{attacker: switched, defender: second, chance: 1}];
       // Log.debug('switched! afterFirst is now');
@@ -297,7 +92,7 @@ class TurnSimulator {
         res.forEach( (poss) => {
           // notice that we convert back from attacker/defender distinction.
           const withChance = {
-            state: clone(state),
+            state: util.clone(state),
             chance: possibility.chance * poss.chance
           };
           // if mine goes first, then it was attacker on first round and defender
@@ -317,7 +112,7 @@ class TurnSimulator {
         switched.switch = second.species;
         // gotta maybe switch back.
         const withChance = {
-          state: clone(state),
+          state: util.clone(state),
           chance: possibility.chance
         };
         // don't need conditionals here, bc mineGoesFirst is always true.
@@ -462,27 +257,27 @@ class TurnSimulator {
     const possible = [];
     if (koturns === 1) {
       possible.push({
-        attacker: clone(attacker),
-        defender: this._kill(clone(defender)),
+        attacker: util.clone(attacker),
+        defender: this._kill(util.clone(defender)),
         chance: kochance
       });
       if (kochance < 1) {
         possible.push({
-          attacker: clone(attacker),
-          defender: this._takeDamage(clone(defender), dmg[0]),
+          attacker: util.clone(attacker),
+          defender: this._takeDamage(util.clone(defender), dmg[0]),
           chance: (1 - kochance)
         });
       }
     } else {
       // 50% chance for max damage; 50% chance for min damage.
       possible.push({
-        attacker: clone(attacker),
-        defender: this._takeDamage(clone(defender), dmg[0]),
+        attacker: util.clone(attacker),
+        defender: this._takeDamage(util.clone(defender), dmg[0]),
         chance: 0.5
       });
       possible.push({
-        attacker: clone(attacker),
-        defender: this._takeDamage(clone(defender), dmg[dmg.length - 1]),
+        attacker: util.clone(attacker),
+        defender: this._takeDamage(util.clone(defender), dmg[dmg.length - 1]),
         chance: 0.5
       });
     }
@@ -581,9 +376,9 @@ class TurnSimulator {
     // apply effects that may or may not happen
     const secondary = move.secondary;
 
-    // need clones so that references to objects don't get tangled
-    const noproc = clone(possible);
-    const procs = clone(possible);
+    // need util.clones so that references to objects don't get tangled
+    const noproc = util.clone(possible);
+    const procs = util.clone(possible);
 
     noproc.chance = (1 - (secondary.chance / 100));
     procs.chance = (secondary.chance / 100);
@@ -618,7 +413,7 @@ class TurnSimulator {
    * @return {[type]}     [description]
    */
   _takeDamage(mon, dmg) {
-    const res = clone(mon);
+    const res = util.clone(mon);
     res.hp = Math.max(0, mon.hp - dmg);
     if (res.hp === 0) {
       return this._kill(res);
@@ -628,7 +423,7 @@ class TurnSimulator {
   }
 
   _kill(mon) {
-    const res = clone(mon);
+    const res = util.clone(mon);
     res.dead = true;
     res.condition = '0 fnt';
     res.hp = 0;

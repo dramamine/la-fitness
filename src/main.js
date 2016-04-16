@@ -1,5 +1,5 @@
 import Log from 'log';
-import TurnSimulator from './turnsimulator';
+import Iterator from './iterator';
 import {MOVE, SWITCH} from 'decisions';
 
 export default class Main {
@@ -21,10 +21,7 @@ export default class Main {
   }
 
   branchPicker(state) {
-    const futures = TurnSimulator.iterate(state,
-      TurnSimulator.getMyOptions(state),
-      TurnSimulator.getYourOptions(state),
-      1)
+    const futures = Iterator.iterateSingleThreaded(state, 1)
     .filter(a => a.myChoice) // root node has no choice made
     .sort((a, b) => b.fitness - a.fitness); // highest fitness first
     const future = futures[0];

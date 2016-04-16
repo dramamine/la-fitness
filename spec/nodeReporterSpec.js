@@ -1,5 +1,5 @@
 import util from 'pokeutil';
-import turnsimulator from 'la-fitness/src/turnsimulator';
+import Iterator from 'la-fitness/src/iterator';
 import nodeReporter from 'la-fitness/src/nodeReporter';
 
 describe('nodeReporter', () => {
@@ -37,12 +37,7 @@ describe('nodeReporter', () => {
       })
     ];
 
-    const myOptions = turnsimulator.getMyOptions(state);
-    console.log(`iterating through ${myOptions.length} options`);
-    const yourOptions = turnsimulator.getYourOptions(state);
-    console.log(`iterating through ${yourOptions.length} options`);
-
-    const nodes = turnsimulator.iterate(state, myOptions, yourOptions, 1);
+    const nodes = Iterator.iterateSingleThreaded(state, 1);
     const reports = nodes.map((node) => {
       const report = nodeReporter.report(node);
       console.log(report);

@@ -1,29 +1,47 @@
-// import TurnSimulator from 'la-fitness/src/turnsimulator';
-// import Evaluator from 'la-fitness/src/evaluator';
-// import state from 'helpers/randomstate';
+import Evaluator from 'la-fitness/src/evaluator';
+import util from 'pokeutil';
 
-// describe('evaluator', () => {
-//   describe('evaluate', () => {
-//     it('should format my options the way I want', () => {
-//       spyOn(TurnSimulator, 'iterate');
-//       Evaluator.evaluate(state);
-//       const options = TurnSimulator.iterate.calls.argsFor(0)[1];
-//       expect(options[0].id).toBe('xscissor');
-//       expect(options[1].id).toBe('swordsdance');
-//       expect(options[2].id).toBe('willowisp');
-//       expect(options[3].id).toBe('shadowclaw');
-//       expect(options.find(option => option.species === 'Armaldo')).toBeTruthy();
-//       expect(options.find(option => option.species === 'Landorus')).toBeTruthy();
-//       expect(options.find(option => option.species === 'Eelektross')).toBeTruthy();
-//       expect(options.find(option => option.species === 'Seaking')).toBeTruthy();
-//       expect(options.find(option => option.species === 'Starmie')).toBeTruthy();
-//     });
-//     // it('should evaluate a fitness for each option', () => {
-//     //   const futures = Evaluator.evaluate(state);
-//     //   console.log(futures[0]);
-//     //   // futures.forEach(future => {
-//     //   //   expect()
-//     //   // })
-//     // });
-//   });
-// });
+describe('evaluator', () => {
+  describe('evaluateNode', () => {
+    let state;
+    let yourOptions;
+    beforeEach( () => {
+      state = {
+        self: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 105
+            },
+          }, util.researchPokemonById('onix'))
+        },
+        opponent: {
+          active: Object.assign({
+            hp: 100,
+            maxhp: 100,
+            boostedStats: {
+              spe: 95
+            },
+          }, util.researchPokemonById('bulbasaur'))
+        },
+        field: 'dont lose this'
+      };
+      yourOptions = [
+        util.researchMoveById('waterpulse'),
+        util.researchMoveById('swordsdance'),
+        util.researchMoveById('toxic'),
+      ];
+    });
+    it('should notice the worst situation kills us', () => {
+      // onix is 4x weak to water.
+      const myMove = util.researchMoveById('splash');
+      const res = Evaluator.evaluateNode(state, myMove, yourOptions);
+      console.log(res);
+      expect(res.fitness).toBeLessThan(-5);
+      expect(res.state.self.active.dead).toBe(true);
+      expect(res.state.self.active.hp).toEqual(0);
+      expect(res.state.field).toBeTruthy();
+    });
+  });
+});
