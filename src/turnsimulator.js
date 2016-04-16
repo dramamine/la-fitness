@@ -145,17 +145,19 @@ class TurnSimulator {
     // Log.debug(whatCouldHappen[whatCouldHappen.length - 1]);
 
     const worstCase = whatCouldHappen[0];
+    const betterCase = whatCouldHappen[1];
 
     const evaluated = {
       state: worstCase.possibilities[0].state,
       fitness: worstCase.expectedValue,
       myChoice,
       yourChoice: worstCase.yourChoice,
-      depth: depth - 1
+      depth: depth - 1,
+      betterCase: {
+        risk: this.considerSecondWorstCase(state, worstCase, betterCase),
+        fitness: betterCase.fitness
+      }
     };
-
-    // const betterCase = whatCouldHappen[1];
-    // this.considerSecondWorstCase(state, worstCase, betterCase);
 
     return evaluated;
   }
@@ -188,6 +190,8 @@ class TurnSimulator {
       const chanceHeHasMoveWeHaventSeen = emptySlots / possibleMoves;
       risk *= 1 - chanceHeHasMoveWeHaventSeen;
     }
+
+    return risk;
   }
 
   // get fitness & status of this team
@@ -540,7 +544,7 @@ class TurnSimulator {
       } else if (move.self.volatileStatus) { // ex. 'roost'
         possible.attacker.volatileStatus = move.volatileStatus;
       }
-    };
+    }
 
     if (!move.secondary) {
       return [{

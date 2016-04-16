@@ -153,13 +153,48 @@ describe('turn simulator', () => {
         }
       };
 
-      const [noproc, procs] = TurnSimulator._applySecondaries(possible, possible.attacker.move);
+      const [noproc, procs] = TurnSimulator._applySecondaries(possible,
+        possible.attacker.move);
 
       expect(noproc.defender.boosts).toBeUndefined();
       expect(noproc.chance).toBe(0.7);
 
       expect(procs.defender.boosts.atk).toBe(-1);
       expect(procs.chance).toBe(0.3);
+    });
+
+    it('should handle healing moves', () => {
+      const possible = {
+        attacker: {
+          hp: 25,
+          maxhp: 100,
+          move: {
+            heal: [1, 2],
+            target: 'self'
+          },
+        },
+        defender: {},
+        chance: 1
+      };
+      const [res] = TurnSimulator._applySecondaries(possible,
+        possible.attacker.move);
+      expect(res.attacker.hp).toEqual(75);
+    });
+    it('should handle drain moves', () => {
+      const possible = {
+        attacker: {
+          hp: 25,
+          maxhp: 100,
+          move: {
+            drain: [1, 2]
+          },
+        },
+        defender: {},
+        chance: 1
+      };
+      const [res] = TurnSimulator._applySecondaries(possible,
+        possible.attacker.move, 100);
+      expect(res.attacker.hp).toEqual(75);
     });
   });
   // describe('_normalize', () => {
