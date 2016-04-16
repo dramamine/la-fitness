@@ -21,8 +21,10 @@ class TurnSimulator {
       return !mon.active && !mon.dead;
     });
     let moves = [];
-    if (state.self.active && state.self.active.moves) {
-      moves = clone(state.self.active.moves);
+    if (!state.forceSwitch && !state.teamPreview && state.self.active &&
+      state.self.active.moves) {
+      moves = clone(state.self.active.moves)
+        .filter(move => !move.disabled);
     }
     return switches.concat(moves);
   }
@@ -78,6 +80,8 @@ class TurnSimulator {
         Log.debug('my choice:' + JSON.stringify(myChoice));
         const evaluated = this.evaluateNode(nextNode.state, myChoice,
           clone(yourOptions), depth);
+        console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
+          `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
         evaluated.prevNode = nextNode;
         return evaluated;
       });
@@ -176,17 +180,21 @@ class TurnSimulator {
 
     // has used this before, but decides not to this turn
     const hasUsedThisBefore = 0.5;
-    if (state.opponent.active.knownMoves[(worstCase.yourChoice.id)]) {
+    if (state.opponent.active.seenMoves &&
+      state.opponent.active.seenMoves.indexOf(worstCase.yourChoice.id) > -1) {
       risk *= hasUsedThisBefore;
     } else {
       // chance he doesn't have this move
-      const knownMoves = Object.keys(state.opponent.active.knownMoves).length;
-      const emptySlots = 4 - knownMoves;
+      let known = 0;
+      if (state.opponent.active.seenMoves) {
+        known = state.opponent.active.seenMoves.length;
+      }
+      const emptySlots = 4 - known;
       if (emptySlots < 0 || emptySlots > 4) {
-        Log.error('calculated emptySlots wrong', state.opponent.active.knownMoves);
+        Log.error('calculated emptySlots wrong', state.opponent.active.seenMoves);
       }
       const possibleMoves = Formats[state.opponent.active.id].randomBattleMoves.length
-        - knownMoves;
+        - known;
       const chanceHeHasMoveWeHaventSeen = emptySlots / possibleMoves;
       risk *= 1 - chanceHeHasMoveWeHaventSeen;
     }
@@ -330,15 +338,15 @@ class TurnSimulator {
 
     // remove volatile statuses
     // @TODO this is dangerous/lazy
-    if (mine.active && mine.active.volatileStatus) mine.active.volatileStatus = '';
-    if (yours.active && yours.active.volatileStatus) yours.active.volatileStatus = '';
+    if (mine && mine.volatileStatus) mine.volatileStatus = '';
+    if (yours && yours.volatileStatus) yours.volatileStatus = '';
 
     // disable moves and stuff
     if (myChoice.move) {
-      mine.active.moves = this.updateMoves(mine.active, myChoice.id);
+      mine.moves = this.updateMoves(mine, myChoice.id);
     }
     if (yourChoice.move) {
-      yours.active.moves = this.updateMoves(yours.active, yourChoice.id);
+      yours.moves = this.updateMoves(yours, yourChoice.id);
     }
 
     return afterSecond;
@@ -350,13 +358,29 @@ class TurnSimulator {
    * @param  {String} myChoice The ID of the move made.
    * @return {Array<Move>}   Updated moves
    */
-  updateMoves(mon, myChoice) {
-    const chosen = mon.moves.find(move => move.id === myChoice);
+  updateMoves(mon, chosenMove) {
+    // our opponents don't have 'moves' bc we don't know at first.
+    if (!mon.moves) {
+      mon.moves = [];
+    }
+
+    // find the part of 'moves' we need to update.
+    const chosen = mon.moves.find(move => move.id === chosenMove);
+
+    // handle an opponent coming in with a move we didn't know about
+    if (!chosen) {
+      const move = util.researchMoveById[chosenMove.id];
+      move.pp = 20;
+      move.maxpp = 20;
+      mon.moves.push(move);
+    }
+
+    // subtracting pp
     chosen.pp -= 1;
     if (chosen.pp === 0) chosen.disabled = true;
 
     // choice items disable all other moves
-    if (mon.item.toLowerCase().indexOf('choice') >= 0) {
+    if (mon.item && mon.item.toLowerCase().indexOf('choice') >= 0) {
       mon.moves.forEach(move => {
         if (move === chosen) return;
         move.disabled = true;
@@ -364,7 +388,7 @@ class TurnSimulator {
     }
 
     // fakeout only works on the first turn out.
-    if (myChoice === 'fakeout') {
+    if (chosenMove === 'fakeout') {
       chosen.disabled = true;
     }
     return mon.moves;
