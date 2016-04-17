@@ -2,8 +2,92 @@ import Evaluator from './evaluator';
 import Formats from 'data/formats';
 import util from 'pokeutil';
 import Log from 'log';
+import Weaver from './weaver';
 
 class Iterator {
+  constructor() {
+    this.weaver = new Weaver();
+  }
+
+
+  iterateMultiThreaded(state, depth = 5, myOptions = null, yourOptions = null) {
+    console.time('iterate');
+    if (!myOptions) {
+      myOptions = this.getMyOptions(state);
+    }
+    if (!yourOptions) {
+      yourOptions = this.getYourOptions(state);
+    }
+
+    let nodes = [];
+
+    const branchOut = (toEvaluate) => {
+      nodes = nodes.concat(toEvaluate);
+      // console.log('branchout called.', toEvaluate.length);
+
+      while (true) { // eslint-disable-line
+        const nextNode = this._getNextNode(nodes);
+        if (!nextNode) {
+          // console.log('ran out of nodes to check.');
+          break;
+        }
+        // Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
+        myOptions.forEach((myChoice) => { // eslint-disable-line
+          // Log.debug('my choice:' + JSON.stringify(myChoice));
+          // console.log('enqueuing another node.');
+          this.weaver.enqueue([nextNode, myChoice, util.clone(yourOptions), nextNode.depth]);
+        });
+        nextNode.evaluated = true;
+      }
+    };
+    this.weaver.useCallback(branchOut);
+    this.weaver.useEmpty(() => {
+      console.log('queue is empty.');
+    });
+
+    const initialNode = {
+      state,
+      fitness: 0,
+      depth
+    };
+
+    branchOut([initialNode]);
+
+    // let nodes = [initialNode];
+    // while (true) { // eslint-disable-line
+    //   const nextNode = this._getNextNode(nodes);
+    //   if (!nextNode) {
+    //     Log.debug('ran out of nodes to check.');
+    //     break;
+    //   }
+    //   Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
+    //   const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
+    //     Log.debug('my choice:' + JSON.stringify(myChoice));
+
+    //     // weaver.enqueue()
+
+    //     // const evaluated = Evaluator.evaluateNode(nextNode.state, myChoice,
+    //     //   util.clone(yourOptions), depth);
+    //     // // console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
+    //     // //  `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
+    //     // evaluated.prevNode = nextNode;
+    //     // return evaluated;
+    //   });
+    //   nodes = nodes.concat(moreNodes);
+    //   // nextNode.futures = moreNodes;
+    //   nextNode.evaluated = true;
+    // }
+    const res = new Promise((resolve) => {
+      setTimeout(() => {
+        console.timeEnd('iterate');
+        console.log(nodes.length + ' nodes');
+        resolve(nodes);
+        this.weaver.die();
+      }, 10000);
+    });
+
+    return res;
+  }
 
   /**
    * Iterate through each of our choices and the opponent's choices.
@@ -16,6 +100,7 @@ class Iterator {
    * @return {[type]}             [description]
    */
   iterateSingleThreaded(state, depth = 1, myOptions = null, yourOptions = null) {
+    console.time('iterate');
     if (!myOptions) {
       myOptions = this.getMyOptions(state);
     }
@@ -38,17 +123,18 @@ class Iterator {
       Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
       const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
         Log.debug('my choice:' + JSON.stringify(myChoice));
-        const evaluated = Evaluator.evaluateNode(nextNode.state, myChoice,
+        const evaluated = Evaluator.evaluateNode(nextNode, myChoice,
           util.clone(yourOptions), depth);
-        console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
-          `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
-        evaluated.prevNode = nextNode;
+        // console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
+        //  `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
         return evaluated;
       });
       nodes = nodes.concat(moreNodes);
       // nextNode.futures = moreNodes;
       nextNode.evaluated = true;
     }
+    console.timeEnd('iterate');
+    console.log(nodes.length + ' nodes');
     return nodes;
   }
 
@@ -103,9 +189,6 @@ class Iterator {
     if (choices.length === 0) return null;
     return choices[0];
   }
-
-
-
 }
 
 export default new Iterator();

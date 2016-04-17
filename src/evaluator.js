@@ -10,7 +10,8 @@ const STATUS_WEIGHTS = {
 
 class Evaluator {
 
-  evaluateNode(state, myChoice, yourOptions, depth = 1) {
+  evaluateNode(node, myChoice, yourOptions, depth = 1) {
+    const state = node.state;
     Log.debug('imagining I chose ' + myChoice.id);
 
     // simulate each of the opponent's choices
@@ -54,6 +55,7 @@ class Evaluator {
     const betterCase = whatCouldHappen[1];
 
     const evaluated = {
+      prevNode: node,
       state: worstCase.possibilities[0].state,
       fitness: worstCase.expectedValue,
       myChoice,

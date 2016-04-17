@@ -27,7 +27,7 @@ class TurnSimulator {
   simulate(state, myChoice, yourChoice) {
     const mine = util.clone(state.self.active);
     const yours = util.clone(state.opponent.active);
-    Log.debug(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
+    // console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     if (myChoice.species) {
       mine.switch = myChoice;
@@ -77,6 +77,23 @@ class TurnSimulator {
     const afterSecond = [];
 
     afterFirst.forEach( (possibility) => {
+      if (second.dead) {
+        const withChance = {
+          state: util.clone(state),
+          chance: possibility.chance
+        };
+        if (mineGoesFirst) {
+          state = util.clone(state);
+          withChance.state.self.active = possibility.attacker;
+          withChance.state.opponent.active = possibility.defender;
+        } else {
+          withChance.state.self.active = possibility.defender;
+          withChance.state.opponent.active = possibility.attacker;
+        }
+        afterSecond.push(withChance);
+        return;
+      }
+
       if (second.move) {
         Log.debug('looking at possibility:' + JSON.stringify(possibility));
         // next move.
@@ -160,14 +177,20 @@ class TurnSimulator {
     }
 
     // find the part of 'moves' we need to update.
-    const chosen = mon.moves.find(move => move.id === chosenMove);
+    let chosen = mon.moves.find(move => move.id === chosenMove);
 
     // handle an opponent coming in with a move we didn't know about
     if (!chosen) {
-      const move = util.researchMoveById[chosenMove.id];
+      const move = util.researchMoveById(chosenMove);
+      if (!move) {
+        Log.error('no move found!' + chosenMove);
+        Log.error(chosenMove);
+        return [];
+      }
       move.pp = 20;
       move.maxpp = 20;
       mon.moves.push(move);
+      chosen = move;
     }
 
     // subtracting pp
