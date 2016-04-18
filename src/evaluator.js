@@ -67,6 +67,10 @@ class Evaluator {
       }
     };
 
+    if (state.self.active.dead || state.opponent.active.dead) {
+      evaluated.terminated = true;
+    }
+
     return evaluated;
   }
 

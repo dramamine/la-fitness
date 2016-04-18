@@ -4,6 +4,8 @@ import util from 'pokeutil';
 import Log from 'log';
 import Weaver from './weaver';
 
+import NodeReporter from './nodeReporter';
+
 class Iterator {
   constructor() {
     this.weaver = new Weaver();
@@ -77,9 +79,31 @@ class Iterator {
     //   // nextNode.futures = moreNodes;
     //   nextNode.evaluated = true;
     // }
+    //
+    const intermediate = setInterval(() => {
+      console.log('INTERMEDIATE NODE REPORTER: ' + nodes.length + ' nodes');
+      const sorted = nodes
+        .filter(node => node.evaluated)
+        .sort((a, b) => b.fitness - a.fitness);
+      if (sorted[0]) {
+        console.log('best node:');
+        console.log(NodeReporter.reportCondensed(sorted[0]));
+      }
+
+      if (sorted[1]) {
+        console.log('2nd best node:');
+        console.log(NodeReporter.reportCondensed(sorted[1]));
+      }
+
+      if (sorted.length > 2) {
+        console.log('worst node:');
+        console.log(NodeReporter.reportCondensed(sorted[sorted.length - 1]));
+      }
+    }, 1000);
     const res = new Promise((resolve) => {
       setTimeout(() => {
         console.timeEnd('iterate');
+        clearInterval(intermediate);
         console.log(nodes.length + ' nodes');
         resolve(nodes);
         this.weaver.die();
@@ -183,6 +207,7 @@ class Iterator {
   _getNextNode(nodes) {
     const choices = nodes.filter(node => {
       if (node.evaluated) return false;
+      if (node.terminated) return false;
       if (node.depth === 0) return false;
       return true;
     }).sort((a, b) => b.fitness - a.fitness);
