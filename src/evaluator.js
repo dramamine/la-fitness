@@ -1,12 +1,7 @@
 import TurnSimulator from './turnsimulator';
 import Formats from 'data/formats';
 import Log from 'log';
-
-
-const STATUS_WEIGHTS = {
-  'VICTORY': 10,
-  'DEFEAT': -10
-};
+import Fitness from './fitness';
 
 class Evaluator {
 
@@ -24,7 +19,7 @@ class Evaluator {
         yourChoice
       );
       possibilities.forEach((possibility) => {
-        possibility.fitness = this._rate(possibility.state);
+        possibility.fitness = Fitness.rate(possibility.state).summary;
         if (isNaN(possibility.fitness)) {
           console.error('stop the presses! this state was rated wrong');
           console.error(possibility.state);
@@ -67,23 +62,12 @@ class Evaluator {
       }
     };
 
-    if (state.self.active.dead || state.opponent.active.dead) {
+    if (evaluated.state.self.active.dead || evaluated.state.opponent.active.dead) {
       evaluated.terminated = true;
     }
 
     return evaluated;
   }
-
-
-  // get fitness & status of this team
-  _rate(state) {
-    const mine = state.self.active;
-    const yours = state.opponent.active;
-    if (yours.dead) return STATUS_WEIGHTS.VICTORY;
-    if (mine.dead) return STATUS_WEIGHTS.DEFEAT;
-    return (mine.hppct - yours.hppct) / 100;
-  }
-
 
   /**
    * @TODO

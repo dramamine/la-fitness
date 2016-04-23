@@ -3,6 +3,8 @@ import Iterator from './iterator';
 import NodeReporter from './nodeReporter';
 import {MOVE, SWITCH} from 'decisions';
 
+Iterator.prepare();
+
 export default class Main {
   decide(state) {
     return new Promise((resolve, reject) => {
@@ -27,11 +29,12 @@ export default class Main {
   }
 
   branchPicker(state) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       Iterator.iterateMultiThreaded(state, 3).then((nodes) => {
         console.log('im back from iterating. ', nodes.length);
         // console.log(nodes);
-        const futures = nodes.filter(a => a.myChoice) // root node has no choice made
+        // root node has no choice made. not sure I need this check though.
+        const futures = nodes.filter(node => node.myChoice && node.terminated)
         .sort((a, b) => b.fitness - a.fitness); // highest fitness first
         const future = futures[0];
 

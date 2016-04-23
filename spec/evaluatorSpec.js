@@ -36,9 +36,10 @@ describe('evaluator', () => {
     it('should notice the worst situation kills us', () => {
       // onix is 4x weak to water.
       const myMove = util.researchMoveById('splash');
-      const res = Evaluator.evaluateNode(state, myMove, yourOptions);
+      const node = {state};
+      const res = Evaluator.evaluateNode(node, myMove, yourOptions);
       console.log(res);
-      expect(res.fitness).toBeLessThan(-5);
+      expect(res.fitness).toBeLessThan(0);
       expect(res.state.self.active.dead).toBe(true);
       expect(res.state.self.active.hp).toEqual(0);
       expect(res.state.field).toBeTruthy();

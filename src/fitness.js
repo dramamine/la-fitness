@@ -8,7 +8,36 @@ import Util from 'pokeutil';
 
 class Fitness {
 
-  partyFitness(party, side = {}) {
+  rate(state) {
+    // from state, hits I will endure to kill opponent
+    const endurance = this._getHitsEndured(state.self.active,
+      state.opponent.active);
+
+    // from state, hits opponent will endure to kill me
+    const block = this._getHitsEndured(state.opponent.active,
+      state.self.active);
+
+    const myHealth = this.partyFitness(
+      state.self.reserve, state.self.side);
+    const yourHealth = this.partyFitness(
+      state.opponent.reserve, state.opponent.side);
+
+    // hmm. this is gonna range from like -9 to 9
+    // @TODO run this through a spreadsheet or something! jc so random
+    const short = (state.opponent.active.dead)
+      ? 10
+      : (block - endurance) / (endurance + 1);
+
+    const long = (myHealth - yourHealth) / 100;
+
+    const summary = short + long;
+    // console.log('rating a thing:');
+    // console.log(endurance, block, myHealth, yourHealth, summary);
+    return {endurance, block, myHealth, yourHealth, summary};
+  }
+
+
+  partyFitness(party = [], side = {}) {
     let sumHp = party.reduce( (sum, curr) => {
       return sum + (curr.hppct || 0);
     }, 0);
@@ -18,7 +47,7 @@ class Fitness {
     }).length;
 
     if (side.spikes) {
-      const spikesFactor = 1 / ( (5 - side.spikes) * 2); // trust me. valid for 1-3
+      const spikesFactor = 1 / ( (5 - side.spikes) * 2); // trust me.
       const potentialDamage = (alive - 1) * spikesFactor;
       sumHp -= Math.floor(potentialDamage, 0);
     }
@@ -39,16 +68,22 @@ class Fitness {
   // @TODO the whole thing
   // @TODO apply speed buffs, ex. paralysis with and without 'Quick Feet'
   _probablyGoesFirst(attacker, defender, move) {
-    if (move.priority > 0) return true;
-    if (move.priority < 0) return false;
+    if (move.priority) {
+      if (move.priority > 0) return true;
+      if (move.priority < 0) return false;
+    }
 
     const speedA = attacker.boostedStats
       ? attacker.boostedStats.spe
-      : attacker.stats.spe;
+      : (attacker.stats
+          ? attacker.stats.spe
+          : attacker.baseStats.spe);
 
     const speedB = defender.boostedStats
       ? defender.boostedStats.spe
-      : defender.stats.spe;
+      : (defender.stats
+          ? defender.stats.spe
+          : defender.baseStats.spe);
     return (speedA > speedB);
   }
 

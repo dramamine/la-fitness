@@ -8,6 +8,9 @@ import NodeReporter from './nodeReporter';
 
 class Iterator {
   constructor() {
+  }
+
+  prepare() {
     this.weaver = new Weaver();
   }
 
@@ -33,10 +36,16 @@ class Iterator {
           // console.log('ran out of nodes to check.');
           break;
         }
+
+        // @TODO myOptions changes!!! need to check the node to see what
+        // options this node actually has!
+
         // Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
         myOptions.forEach((myChoice) => { // eslint-disable-line
           // Log.debug('my choice:' + JSON.stringify(myChoice));
           // console.log('enqueuing another node.');
+          // don't look at switches past the initial node.
+          if (nextNode.prevNode && myChoice.species) return;
           this.weaver.enqueue([nextNode, myChoice, util.clone(yourOptions), nextNode.depth]);
         });
         nextNode.evaluated = true;
@@ -83,7 +92,7 @@ class Iterator {
     const intermediate = setInterval(() => {
       console.log('INTERMEDIATE NODE REPORTER: ' + nodes.length + ' nodes');
       const sorted = nodes
-        .filter(node => node.evaluated)
+        .filter(node => node.evaluated || node.terminated)
         .sort((a, b) => b.fitness - a.fitness);
       if (sorted[0]) {
         console.log('best node:');
@@ -100,6 +109,7 @@ class Iterator {
         console.log(NodeReporter.reportCondensed(sorted[sorted.length - 1]));
       }
     }, 1000);
+
     const res = new Promise((resolve) => {
       setTimeout(() => {
         console.timeEnd('iterate');

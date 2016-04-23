@@ -1,6 +1,7 @@
 import util from 'pokeutil';
 import Iterator from 'la-fitness/src/iterator';
 import nodeReporter from 'la-fitness/src/nodeReporter';
+import Fitness from 'la-fitness/src/fitness';
 
 describe('nodeReporter', () => {
   let state;
@@ -25,6 +26,7 @@ describe('nodeReporter', () => {
     };
   });
   it('should handle this situation', () => {
+    spyOn(Fitness, '_probablyGoesFirst').and.returnValue(true);
     state.self.active.moves = [
       util.researchMoveById('surf'),
       util.researchMoveById('blazekick')
