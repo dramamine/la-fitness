@@ -39,9 +39,10 @@ class Iterator {
 
         // @TODO myOptions changes!!! need to check the node to see what
         // options this node actually has!
+        const options = this.getMyOptions(state);
 
         // Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
-        myOptions.forEach((myChoice) => { // eslint-disable-line
+        options.forEach((myChoice) => { // eslint-disable-line
           // Log.debug('my choice:' + JSON.stringify(myChoice));
           // console.log('enqueuing another node.');
           // don't look at switches past the initial node.
@@ -97,17 +98,14 @@ class Iterator {
       if (sorted[0]) {
         console.log('best node:');
         console.log(NodeReporter.reportCondensed(sorted[0]));
+        NodeReporter.recursiveMatchStatuses(sorted[0]);
       }
 
-      if (sorted[1]) {
-        console.log('2nd best node:');
-        console.log(NodeReporter.reportCondensed(sorted[1]));
-      }
-
-      if (sorted.length > 2) {
-        console.log('worst node:');
-        console.log(NodeReporter.reportCondensed(sorted[sorted.length - 1]));
-      }
+      // if (sorted[1]) {
+      //   console.log('2nd best node:');
+      //   console.log(NodeReporter.reportCondensed(sorted[1]));
+      //   NodeReporter.recursiveMatchStatuses(sorted[1]);
+      // }
     }, 1000);
 
     const res = new Promise((resolve) => {
@@ -117,7 +115,7 @@ class Iterator {
         console.log(nodes.length + ' nodes');
         resolve(nodes);
         this.weaver.die();
-      }, 10000);
+      }, 5000);
     });
 
     return res;
@@ -173,9 +171,13 @@ class Iterator {
   }
 
   getMyOptions(state) {
-    const switches = state.self.reserve.filter(mon => {
-      return !mon.active && !mon.dead;
-    });
+    let switches = [];
+    if (!state.self.active.maybeTrapped) {
+      switches = state.self.reserve.filter(mon => {
+        return !mon.active && !mon.dead;
+      });
+    }
+
     let moves = [];
     if (!state.forceSwitch && !state.teamPreview && state.self.active &&
       state.self.active.moves) {

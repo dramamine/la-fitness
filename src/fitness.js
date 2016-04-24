@@ -5,10 +5,11 @@
 import Damage from 'lib/damage';
 import Formats from 'data/formats';
 import Util from 'pokeutil';
+import Log from 'log';
 
 class Fitness {
 
-  rate(state) {
+  rate(state, depth = 1) {
     // from state, hits I will endure to kill opponent
     const endurance = this._getHitsEndured(state.self.active,
       state.opponent.active);
@@ -17,10 +18,11 @@ class Fitness {
     const block = this._getHitsEndured(state.opponent.active,
       state.self.active);
 
+    // @TODO ugh lazy, just adding reserve and current hps
     const myHealth = this.partyFitness(
-      state.self.reserve, state.self.side);
+      state.self.reserve, state.self.side) + state.self.active.hppct;
     const yourHealth = this.partyFitness(
-      state.opponent.reserve, state.opponent.side);
+      state.opponent.reserve, state.opponent.side) + state.opponent.active.hppct;
 
     // hmm. this is gonna range from like -9 to 9
     // @TODO run this through a spreadsheet or something! jc so random
@@ -30,10 +32,10 @@ class Fitness {
 
     const long = (myHealth - yourHealth) / 100;
 
-    const summary = short + long;
+    const summary = short + long + depth;
     // console.log('rating a thing:');
     // console.log(endurance, block, myHealth, yourHealth, summary);
-    return {endurance, block, myHealth, yourHealth, summary};
+    return {endurance, block, myHealth, yourHealth, depth, summary};
   }
 
 
@@ -68,6 +70,9 @@ class Fitness {
   // @TODO the whole thing
   // @TODO apply speed buffs, ex. paralysis with and without 'Quick Feet'
   _probablyGoesFirst(attacker, defender, move) {
+    if (!move) {
+      throw new Error('_probablyGoesFirst has no move!');
+    }
     if (move.priority) {
       if (move.priority > 0) return true;
       if (move.priority < 0) return false;
@@ -143,7 +148,17 @@ class Fitness {
     }
 
     // @TODO do I have any priority moves that would OHKO?
-    const isFirst = this._probablyGoesFirst(attacker, defender, bestMove);
+    let isFirst = false;
+    try {
+      isFirst = this._probablyGoesFirst(attacker, defender, bestMove);
+    } catch(e) {
+      Log.error('Something broke. check fitness-errors.out for details.');
+      Log.error(e);
+      Log.toFile('fitness-errors.out', JSON.stringify(attacker) );
+      Log.toFile('fitness-errors.out', JSON.stringify(defender) );
+      Log.toFile('fitness-errors.out', JSON.stringify(bestMove) );
+      Log.toFile('fitness-errors.out', '\n' );
+    }
     let hitsEndured = 0; // 10 is pretty bad.
     let remainingHP = defender.hp; // @TODO does this exist
 
@@ -154,7 +169,7 @@ class Fitness {
     while (hitsEndured < 10) {
       if (remainingHP === null) {
         console.log('bailing out! missing hp', attacker, defender);
-        exit;
+        throw new Error('defender.hp is null');
       }
       // console.log(`isfirst: ${isFirst}, remaining HP: ${remainingHP} dmg: ${maxDmg}`);
       if (isFirst) {

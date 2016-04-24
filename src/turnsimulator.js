@@ -36,13 +36,20 @@ class TurnSimulator {
 
       // update moves array. this should always be there, since we know what
       // moves our mon has. but sometimes we don't have it (like for unit tests)
-      if (myChoice.moves) {
-        myChoice.moves = myChoice.moves.map(move =>
-          util.researchMoveById(move)
-        );
-      }
+      // if (myChoice.moves) {
+      //   console.log('researching these: ', myChoice.moves);
+      //   myChoice.moves = myChoice.moves.map(move =>
+      //     util.researchMoveById(move)
+      //   );
+      //   console.log(myChoice.moves);
+
+      // }
     } else {
       mine.move = myChoice;
+      if (mine.prevMoves) {
+        mine.prevMoves = [];
+      }
+      mine.prevMoves.unshift(myChoice.id);
     }
 
     if (yourChoice.species) {
@@ -51,6 +58,10 @@ class TurnSimulator {
       delete yours.move;
     } else {
       yours.move = yourChoice;
+      if (yours.prevMoves) {
+        yours.prevMoves = [];
+      }
+      yours.prevMoves.unshift(yourChoice.id);
     }
 
     let mineGoesFirst;
@@ -72,7 +83,17 @@ class TurnSimulator {
     // afterFirst is an array of [attacker, defender, chance]
     let afterFirst;
     if (first.move) {
-      afterFirst = this._simulateMove({attacker: first, defender: second});
+      try {
+        afterFirst = this._simulateMove({attacker: first, defender: second});
+      } catch(e) {
+        Log.error('Something broke. check simulation-errors.out for details.');
+        Log.toFile('simulation-errors.out', JSON.stringify(state) );
+        Log.toFile('simulation-errors.out', JSON.stringify(myChoice) );
+        Log.toFile('simulation-errors.out', JSON.stringify(yourChoice) );
+        Log.toFile('simulation-errors.out', JSON.stringify(attacker) );
+        Log.toFile('simulation-errors.out', JSON.stringify(defender) );
+        Log.toFile('simulation-errors.out', '\n' );
+      }
     } else {
       const switched = util.clone(first.switch);
       switched.switch = first.species; // ?? to know we switched?
@@ -105,10 +126,20 @@ class TurnSimulator {
         Log.debug('looking at possibility:' + JSON.stringify(possibility));
         // next move.
         // WHOA WATCH OUT FOR THE ATK/DEF SWAP
-        const res = this._simulateMove({
-          attacker: possibility.defender,
-          defender: possibility.attacker
-        });
+        let res;
+        try {
+          res = this._simulateMove({
+            attacker: possibility.defender,
+            defender: possibility.attacker
+          });
+        } catch(e) {
+          Log.error('Something broke. check simulation-errors.out for details.');
+          Log.toFile('simulation-errors.out', JSON.stringify(state) );
+          Log.toFile('simulation-errors.out', JSON.stringify(myChoice) );
+          Log.toFile('simulation-errors.out', JSON.stringify(yourChoice) );
+          Log.toFile('simulation-errors.out', JSON.stringify(possibility) );
+          Log.toFile('simulation-errors.out', '\n' );
+        }
 
         Log.debug('after second move, attacker is:' + res[0].attacker.species);
         Log.debug('attacker hp:' + res[0].attacker.hp);

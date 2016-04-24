@@ -1,3 +1,5 @@
+import MatchStatus from 'reporters/matchstatus';
+
 class NodeReporter {
   report(node) {
     // console.log('trying to report on this node:', node);
@@ -25,7 +27,12 @@ class NodeReporter {
     } vs your hp: ${node.state.opponent.active.species} ${node.state.opponent.active.hp})`);
     return lines.join('\n');
   }
-
+  recursiveMatchStatuses(node) {
+    if (node.prevNode) {
+      this.recursiveMatchStatuses(node.prevNode);
+    }
+    MatchStatus.report(node.state);
+  }
 
   recursiveMoves(node) {
     const mine = node.myChoice ? node.myChoice.id : '??';
