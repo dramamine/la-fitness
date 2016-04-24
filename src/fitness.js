@@ -93,6 +93,22 @@ class Fitness {
   }
 
   _getMaxDmg(attacker, defender) {
+    // short-circuit this function: in this case we already know what move
+    // the attacker is using, so we don't need to look through all their
+    // possible moves.
+    if (attacker.move) {
+      return {
+        maxDmg: Damage.getDamageResult(
+          attacker,
+          defender,
+          attacker.move,
+          {},
+          true
+        ),
+        bestMove: attacker.move
+      };
+    }
+
     let maxDmg = 0;
     let bestMove;
     const moves = attacker.moves ||
@@ -153,6 +169,7 @@ class Fitness {
       isFirst = this._probablyGoesFirst(attacker, defender, bestMove);
     } catch(e) {
       Log.error('Something broke. check fitness-errors.out for details.');
+      console.log(bestMove, attacker);
       Log.error(e);
       Log.toFile('fitness-errors.out', JSON.stringify(attacker) );
       Log.toFile('fitness-errors.out', JSON.stringify(defender) );

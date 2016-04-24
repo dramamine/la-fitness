@@ -2,11 +2,17 @@ import Log from 'log';
 import Iterator from './iterator';
 import NodeReporter from './nodeReporter';
 import {MOVE, SWITCH} from 'decisions';
+import Team from 'lib/team';
 
 Iterator.prepare();
 
 export default class Main {
   decide(state) {
+    // won't happen for randombattles, but lazily handle for anythinggoes
+    if (state.teamPreview) {
+      return new SWITCH(0);
+    }
+
     return new Promise((resolve, reject) => {
       this.branchPicker(state).then((node) => {
         console.log('found my node.');
@@ -26,6 +32,13 @@ export default class Main {
         reject(node);
       });
     });
+  }
+
+  team() {
+    console.log('OK, my team function was called.');
+    // if this gets called use a predetermined random team.
+    // @TODO hardcoded to a Slowking team.
+    return Team.random(0);
   }
 
   branchPicker(state) {
