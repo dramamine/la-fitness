@@ -43,11 +43,11 @@ class Iterator {
 
         // Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
         options.forEach((myChoice) => { // eslint-disable-line
-          // Log.debug('my choice:' + JSON.stringify(myChoice));
-          // console.log('enqueuing another node.');
           // don't look at switches past the initial node.
           if (nextNode.prevNode && myChoice.species) return;
-          this.weaver.enqueue([nextNode, myChoice, util.clone(yourOptions), nextNode.depth]);
+
+          this.weaver.enqueue([nextNode, myChoice, util.clone(yourOptions),
+            nextNode.depth]);
         });
         nextNode.evaluated = true;
       }
@@ -65,47 +65,8 @@ class Iterator {
 
     branchOut([initialNode]);
 
-    // let nodes = [initialNode];
-    // while (true) { // eslint-disable-line
-    //   const nextNode = this._getNextNode(nodes);
-    //   if (!nextNode) {
-    //     Log.debug('ran out of nodes to check.');
-    //     break;
-    //   }
-    //   Log.debug(`checking a node with fitness ${nextNode.fitness} and depth ${nextNode.depth}`);
-    //   const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
-    //     Log.debug('my choice:' + JSON.stringify(myChoice));
-
-    //     // weaver.enqueue()
-
-    //     // const evaluated = Evaluator.evaluateNode(nextNode.state, myChoice,
-    //     //   util.clone(yourOptions), depth);
-    //     // // console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
-    //     // //  `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
-    //     // evaluated.prevNode = nextNode;
-    //     // return evaluated;
-    //   });
-    //   nodes = nodes.concat(moreNodes);
-    //   // nextNode.futures = moreNodes;
-    //   nextNode.evaluated = true;
-    // }
-    //
     const intermediate = setInterval(() => {
-      console.log('INTERMEDIATE NODE REPORTER: ' + nodes.length + ' nodes');
-      const sorted = nodes
-        .filter(node => node.evaluated || node.terminated)
-        .sort((a, b) => b.fitness - a.fitness);
-      if (sorted[0]) {
-        console.log('best node:');
-        console.log(NodeReporter.reportCondensed(sorted[0]));
-        NodeReporter.recursiveMatchStatuses(sorted[0]);
-      }
-
-      // if (sorted[1]) {
-      //   console.log('2nd best node:');
-      //   console.log(NodeReporter.reportCondensed(sorted[1]));
-      //   NodeReporter.recursiveMatchStatuses(sorted[1]);
-      // }
+      NodeReporter.intermediateReporter(nodes);
     }, 1000);
 
     const res = new Promise((resolve) => {

@@ -26,7 +26,7 @@ class TurnSimulator {
    */
   simulate(state, myChoice, yourChoice) {
     const mine = util.clone(state.self.active);
-    const yours = util.clone(state.opponent.active);
+    const yours = Damage.assumeStats( util.clone(state.opponent.active) );
     // console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
     if (myChoice.species) {
@@ -468,7 +468,7 @@ class TurnSimulator {
   }
 
   /**
-   * Aplly damage to our pokemon.
+   * Apply damage to our pokemon.
    * @param  {[type]} mon [description]
    * @param  {[type]} dmg [description]
    * @return {[type]}     [description]

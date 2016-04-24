@@ -16,7 +16,8 @@ class NodeReporter {
     const yours = node.yourChoice ? node.yourChoice.id : '??';
     // console.log(JSON.stringify(node));
     return `me: ${mine}, you: ${yours}, fitness: ${node.fitness}, depth: ${node.depth}
-    (my hp: ${node.state.self.active.hp} vs your hp: ${node.state.opponent.active.hp})`;
+    (my hp: ${Math.round(node.state.self.active.hppct)} vs your hp: ${Math.round(
+      node.state.opponent.active.hppct)})`;
   }
 
   reportCondensed(node) {
@@ -24,7 +25,7 @@ class NodeReporter {
     lines.push(`fitness: ${Math.round(node.fitness, 2)}`);
     lines.push(`moves chosen: ${this.recursiveMoves(node)}`);
     lines.push(`(my dudes hp: ${node.state.self.active.species} ${node.state.self.active.hp
-    } vs your hp: ${node.state.opponent.active.species} ${node.state.opponent.active.hp})`);
+    } vs your hp: ${node.state.opponent.active.species} ${node.state.opponent.active.hppct})`);
     return lines.join('\n');
   }
   recursiveMatchStatuses(node) {
@@ -41,6 +42,40 @@ class NodeReporter {
     }
     return mine;
   }
+
+  intermediateReporter(nodes) {
+    console.log('INTERMEDIATE NODE REPORTER: ' + nodes.length + ' nodes');
+    const sorted = nodes
+      .filter(node => node.evaluated || node.terminated)
+      .sort((a, b) => b.fitness - a.fitness);
+    if (!sorted[0]) return;
+    const bestNode = sorted[0];
+
+    console.log('best node:');
+    console.log(this.reportCondensed(bestNode));
+    this.recursiveMatchStatuses(bestNode);
+
+    // find a node that doesn't have the same initial choice
+    const firstChoice = this.getFirstChoice(bestNode);
+    const runnerup = sorted.find(node =>
+      this.getFirstChoice(node) !== firstChoice);
+    if (runnerup) {
+      console.log('2nd best node:');
+      console.log(this.reportCondensed(runnerup));
+      this.recursiveMatchStatuses(runnerup);
+    } else {
+      console.log('did not find another node with a different choice.');
+    }
+  }
+
+  getFirstChoice(node) {
+    let earlier = node;
+    while (earlier.prevNode && earlier.prevNode.myChoice) {
+      earlier = earlier.prevNode;
+    }
+    return earlier.myChoice.id;
+  }
+
 }
 
 export default new NodeReporter();
