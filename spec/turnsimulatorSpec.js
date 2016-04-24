@@ -374,6 +374,17 @@ describe('turn simulator', () => {
       expect(res[0].state.self.active.hp).toEqual(78);
       expect(res[0].state.opponent.active.hp).toBeLessThan(91);
     });
+    it('should update the active moves array for switching out', () => {
+      const myMove = util.researchPokemonById('klefki');
+      myMove.moves = ['earthquake'];
+      const yourMove = util.researchPokemonById('charmander');
+      const res = TurnSimulator.simulate(state, myMove, yourMove);
+      expect(res[0].state.self.active.species).toEqual('Klefki');
+      expect(res[0].state.self.active.moves.length).toEqual(1);
+      console.log(res[0].state.self.active.moves);
+      expect(res[0].state.self.active.moves[0].id).toEqual('earthquake');
+      expect(res[0].state.opponent.active.species).toEqual('Charmander');
+    });
   });
 
   describe('updateMoves', () => {

@@ -33,6 +33,14 @@ class TurnSimulator {
       mine.switch = myChoice;
       // not sure why I need this :\
       delete mine.move;
+
+      // update moves array. this should always be there, since we know what
+      // moves our mon has. but sometimes we don't have it (like for unit tests)
+      if (myChoice.moves) {
+        myChoice.moves = myChoice.moves.map(move =>
+          util.researchMoveById(move)
+        );
+      }
     } else {
       mine.move = myChoice;
     }
@@ -83,7 +91,6 @@ class TurnSimulator {
           chance: possibility.chance
         };
         if (mineGoesFirst) {
-          state = util.clone(state);
           withChance.state.self.active = possibility.attacker;
           withChance.state.opponent.active = possibility.defender;
         } else {
