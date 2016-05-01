@@ -46,7 +46,7 @@ class TurnSimulator {
       // }
     } else {
       mine.move = myChoice;
-      if (mine.prevMoves) {
+      if (!mine.prevMoves) {
         mine.prevMoves = [];
       }
       mine.prevMoves.unshift(myChoice.id);
@@ -58,7 +58,7 @@ class TurnSimulator {
       delete yours.move;
     } else {
       yours.move = yourChoice;
-      if (yours.prevMoves) {
+      if (!yours.prevMoves) {
         yours.prevMoves = [];
       }
       yours.prevMoves.unshift(yourChoice.id);

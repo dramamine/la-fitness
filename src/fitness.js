@@ -134,6 +134,11 @@ class Fitness {
         bestMove = move;
       }
     });
+    // sometimes no moves do any damage :(
+    if (!bestMove) {
+      bestMove = moves[0];
+    }
+
     return {maxDmg, bestMove};
   }
 
@@ -149,7 +154,6 @@ class Fitness {
     // just using max dmg to keep it simple. most moves have the same 'spread'
     // so I'm not too worried about this.
     const {maxDmg, bestMove} = this._getMaxDmg(attacker, defender);
-
     // @TODO shouldn't have to do this.
     if (!attacker.conditions) attacker.conditions = '';
     if (!defender.conditions) defender.conditions = '';
