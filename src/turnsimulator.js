@@ -36,14 +36,13 @@ class TurnSimulator {
 
       // update moves array. this should always be there, since we know what
       // moves our mon has. but sometimes we don't have it (like for unit tests)
-      // if (myChoice.moves) {
-      //   console.log('researching these: ', myChoice.moves);
-      //   myChoice.moves = myChoice.moves.map(move =>
-      //     util.researchMoveById(move)
-      //   );
-      //   console.log(myChoice.moves);
-
-      // }
+      if (myChoice.moves) {
+        Log.debug('since im switching, im also researching these moves.');
+        myChoice.moves = myChoice.moves.map(move => {
+          if (move.id) return move;
+          return util.researchMoveById(move);
+        });
+      }
     } else {
       mine.move = myChoice;
       if (!mine.prevMoves) {
