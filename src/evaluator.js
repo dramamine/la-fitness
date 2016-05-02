@@ -19,7 +19,8 @@ class Evaluator {
         yourChoice
       );
       possibilities.forEach((possibility) => {
-        possibility.fitness = Fitness.rate(possibility.state).summary;
+        possibility.fitnessDetails = Fitness.rate(possibility.state, depth);
+        possibility.fitness = possibility.fitnessDetails.summary;
         if (isNaN(possibility.fitness)) {
           console.error('stop the presses! this state was rated wrong');
           console.error(possibility.state);
@@ -47,22 +48,28 @@ class Evaluator {
     // Log.debug(whatCouldHappen[whatCouldHappen.length - 1]);
 
     const worstCase = whatCouldHappen[0];
-    const betterCase = whatCouldHappen[1];
+
 
     const evaluated = {
       prevNode: node,
       state: worstCase.possibilities[0].state,
+      fitnessDetails: worstCase.possibilities[0].fitnessDetails,
       fitness: worstCase.expectedValue,
       myChoice,
       yourChoice: worstCase.yourChoice,
-      depth: depth - 1,
-      betterCase: {
-        risk: this._considerSecondWorstCase(state, worstCase, betterCase),
-        fitness: betterCase.fitness
-      }
+      depth: depth - 1
     };
 
-    if (evaluated.state.self.active.dead || evaluated.state.opponent.active.dead) {
+    if (whatCouldHappen.length > 1) {
+      const betterCase = whatCouldHappen[1];
+      evaluated.betterCase = {
+        risk: this._considerSecondWorstCase(state, worstCase, betterCase),
+        fitness: betterCase.fitness
+      };
+    }
+
+    if (evaluated.state.self.active.dead || evaluated.state.opponent.active.dead
+      || evaluated.depth === 0) {
       evaluated.terminated = true;
     }
 

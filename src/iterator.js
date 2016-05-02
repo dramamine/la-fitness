@@ -3,7 +3,7 @@ import Formats from 'data/formats';
 import util from 'pokeutil';
 import Log from 'log';
 import Weaver from './weaver';
-
+import Damage from 'lib/damage';
 import NodeReporter from './nodeReporter';
 
 class Iterator {
@@ -102,10 +102,11 @@ class Iterator {
     }
 
     const initialNode = {
-      state,
+      state: this._makeAssumptions(state),
       fitness: 0,
       depth
     };
+
     let nodes = [initialNode];
     while (true) { // eslint-disable-line
       const nextNode = this._getNextNode(nodes);
@@ -129,6 +130,16 @@ class Iterator {
     console.timeEnd('iterate');
     console.log(nodes.length + ' nodes');
     return nodes;
+  }
+
+  _makeAssumptions(state) {
+    if (state.self.active) {
+      state.self.active = Damage.assumeStats(state.self.active);
+    }
+    if (state.opponent.active) {
+      state.opponent.active = Damage.assumeStats(state.opponent.active);
+    }
+    return state;
   }
 
   getMyOptions(state) {
@@ -181,7 +192,6 @@ class Iterator {
     const choices = nodes.filter(node => {
       if (node.evaluated) return false;
       if (node.terminated) return false;
-      if (node.depth === 0) return false;
       return true;
     }).sort((a, b) => b.fitness - a.fitness);
     if (choices.length === 0) return null;

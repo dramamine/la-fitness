@@ -396,6 +396,7 @@ class TurnSimulator {
     if (move.heal) {
       possible.attacker.hp = Math.min(possible.attacker.maxhp,
         possible.attacker.hp + (possible.attacker.maxhp * move.heal[0] / move.heal[1]));
+      possible.attacker.hppct = 100 * possible.attacker.hp / possible.attacker.maxhp;
     }
 
     if (move.drain) {

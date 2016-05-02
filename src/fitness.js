@@ -18,11 +18,17 @@ class Fitness {
     const block = this._getHitsEndured(state.opponent.active,
       state.self.active);
 
+    // sigh, for fixing tests. sry
+    if (!state.self.reserve) state.self.reserve = [];
+    if (!state.opponent.reserve) state.opponent.reserve = [];
+
     // @TODO ugh lazy, just adding reserve and current hps
     const myHealth = this.partyFitness(
-      state.self.reserve, state.self.side) + state.self.active.hppct;
+      state.self.reserve.filter(mon => !mon.active), state.self.side) +
+      this.selfFitness(state.self.active);
     const yourHealth = this.partyFitness(
-      state.opponent.reserve, state.opponent.side) + state.opponent.active.hppct;
+      state.opponent.reserve.filter(mon => !mon.active), state.opponent.side) +
+      this.selfFitness(state.opponent.active);
 
     // hmm. this is gonna range from like -9 to 9
     // @TODO run this through a spreadsheet or something! jc so random
@@ -38,22 +44,25 @@ class Fitness {
     return {endurance, block, myHealth, yourHealth, depth, summary};
   }
 
+  selfFitness(mon) {
+    if (mon.dead) return 0;
+    return mon.hppct;
+  }
 
   partyFitness(party = [], side = {}) {
     let sumHp = party.reduce( (sum, curr) => {
       return sum + (curr.hppct || 0);
     }, 0);
 
-    const alive = party.filter( mon => {
-      return !mon.dead;
-    }).length;
-
     if (side.spikes) {
       const spikesFactor = 1 / ( (5 - side.spikes) * 2); // trust me.
-      const potentialDamage = (alive - 1) * spikesFactor;
+      const alive = party.filter( mon => {
+        return !mon.dead;
+      }).length;
+      const potentialDamage = 100 * (alive - 1) * spikesFactor;
+      console.log('lookin at spikes.', potentialDamage);
       sumHp -= Math.floor(potentialDamage, 0);
     }
-
     return sumHp;
   }
 
@@ -92,20 +101,20 @@ class Fitness {
     return (speedA > speedB);
   }
 
-  _getMaxDmg(attacker, defender) {
+  _getMaxDmg(attacker, defender, move = null) {
     // short-circuit this function: in this case we already know what move
     // the attacker is using, so we don't need to look through all their
     // possible moves.
-    if (attacker.move) {
+    if (move) {
       return {
         maxDmg: Damage.getDamageResult(
           attacker,
           defender,
-          attacker.move,
+          move,
           {},
           true
         ),
-        bestMove: attacker.move
+        bestMove: move
       };
     }
 
@@ -154,6 +163,7 @@ class Fitness {
     // just using max dmg to keep it simple. most moves have the same 'spread'
     // so I'm not too worried about this.
     const {maxDmg, bestMove} = this._getMaxDmg(attacker, defender);
+    // console.log('endurance: got best move ' + bestMove.id + ' for mon ' + attacker.id);
     // @TODO shouldn't have to do this.
     if (!attacker.conditions) attacker.conditions = '';
     if (!defender.conditions) defender.conditions = '';
@@ -188,7 +198,7 @@ class Fitness {
     // KO library doesn't give us as much flexibility with status effect
     // damage.
     while (hitsEndured < 10) {
-      if (remainingHP === null) {
+      if (remainingHP !== 0 && !remainingHP) {
         console.log('bailing out! missing hp', attacker, defender);
         throw new Error('defender.hp is null');
       }

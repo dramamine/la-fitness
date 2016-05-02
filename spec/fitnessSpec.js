@@ -1,11 +1,11 @@
 import Fitness from 'la-fitness/src/fitness';
-import Util from 'pokeutil';
+import util from 'pokeutil';
 
 describe('Fitness', () => {
   describe('_getMaxDmg', () => {
     it('should research a pokemon if we don\'t know its moves', () => {
-      const attacker = Util.researchPokemonById('hitmonchan');
-      const defender = Util.researchPokemonById('eevee');
+      const attacker = util.researchPokemonById('hitmonchan');
+      const defender = util.researchPokemonById('eevee');
       const {bestMove} = Fitness._getMaxDmg(attacker, defender);
       // STAB move with 75 base power. its best.
       expect(bestMove.id).toEqual('drainpunch');
@@ -99,26 +99,70 @@ describe('Fitness', () => {
       defender.conditions = 'tox';
       expect(Fitness._getHitsEndured(attacker, defender)).toEqual(6);
     });
+
+    it('should handle dragonrage', () => {
+      const myActive = Object.assign({
+        hppct: 90,
+        hp: 90,
+        maxhp: 100,
+        moves: [
+          util.researchMoveById('quickattack')
+        ],
+        active: true
+      }, util.researchPokemonById('eevee'));
+      const yourActive = Object.assign({
+        active: true,
+        hp: 100,
+        maxhp: 100,
+        hppct: 100,
+        moves: [
+          util.researchMoveById('dragonrage')
+        ]
+      }, util.researchPokemonById('steelix'));
+      // was really just playing around with this to see what worked. steelix
+      // is steel-type so he resists the normal move quickattack
+      const atk = Fitness._getHitsEndured(myActive, yourActive);
+      expect(atk).toBeGreaterThan(1);
+      expect(atk).toBeLessThan(10);
+
+      // absorbs three quick attacks before dealing final blow
+      const def = Fitness._getHitsEndured(yourActive, myActive);
+      expect(def).toEqual(3);
+    });
   });
-  fdescribe('rate', () => {
+  describe('partyFitness', () => {
+    it('should sum up the hp percents', () => {
+      const party = [{hppct: 50}, {hppct: 75}];
+      expect(Fitness.partyFitness(party)).toEqual(125);
+    });
+    it('should punish spikes', () => {
+      const party = [{hppct: 50}, {hppct: 75}];
+      expect(Fitness.partyFitness(party, {spikes: 1})).toBeLessThan(125);
+    });
+  });
+  describe('rate', () => {
     let myActive;
     let yourActive;
     let state;
     beforeEach(() => {
       myActive = Object.assign({
         hppct: 50,
+        hp: 50,
+        maxhp: 100,
         moves: [
-          Util.researchMoveById('roost'),
-          Util.researchMoveById('quickattack')
+          util.researchMoveById('roost'),
+          util.researchMoveById('quickattack')
         ]
-      }, Util.researchPokemonById('eevee'));
+      }, util.researchPokemonById('eevee'));
       yourActive = Object.assign({
         hppct: 50,
+        hp: 50,
+        maxhp: 100,
         moves: [
-          Util.researchMoveById('roost'),
-          Util.researchMoveById('quickattack')
+          util.researchMoveById('roost'),
+          util.researchMoveById('quickattack')
         ]
-      }, Util.researchPokemonById('eevee'));
+      }, util.researchPokemonById('eevee'));
       state = {
         self: {
           active: myActive,

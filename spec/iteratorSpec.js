@@ -1,4 +1,5 @@
 import Iterator from 'la-fitness/src/iterator';
+import NodeReporter from 'la-fitness/src/nodeReporter';
 import util from 'pokeutil';
 
 describe('iterator', () => {
@@ -87,8 +88,7 @@ describe('iterator', () => {
       {evaluated: false, fitness: 0, depth: 1},
       {evaluated: false, fitness: 1, depth: 1},
       {evaluated: false, fitness: -1, depth: 1},
-      {evaluated: true, fitness: 0, depth: 1},
-      {evaluated: false, fitness: 0, depth: 0}
+      {evaluated: true, fitness: 0, depth: 1}
     ];
     it('should return the node with the best fitness', () => {
       const chosen = Iterator._getNextNode(someNodes);
@@ -99,9 +99,60 @@ describe('iterator', () => {
       const chosen = Iterator._getNextNode([someNodes[3]]);
       expect(chosen).toEqual(null);
     });
-    it('should not consider nodes that are too deep', () => {
-      const chosen = Iterator._getNextNode([someNodes[4]]);
-      expect(chosen).toEqual(null);
+  });
+
+  describe('specific situations', () => {
+    describe('nonthreatening opponent', () => {
+      it('should roost when it is safe', () => {
+        const myActive = Object.assign({
+          hppct: 50,
+          hp: 50,
+          maxhp: 100,
+          moves: [
+            util.researchMoveById('roost'),
+            util.researchMoveById('quickattack')
+          ],
+          active: true
+        }, util.researchPokemonById('eevee'));
+        const yourActive = Object.assign({
+          active: true,
+          hppct: 100,
+          moves: [
+            util.researchMoveById('dragonrage')
+          ]
+        }, util.researchPokemonById('steelix'));
+        const state = {
+          self: {
+            active: myActive,
+            reserve: [myActive]
+          },
+          opponent: {
+            active: yourActive,
+            reserve: [yourActive]
+          }
+        };
+        // known moves only. normally we'd run opponent through all possible moves.
+        const nodes = Iterator.iterateSingleThreaded(state, 1,
+          state.self.active.moves, state.opponent.active.moves);
+        const futures = nodes.filter(node => node.myChoice && node.terminated)
+          .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+        const future = futures[0];
+        console.log(futures[0].myChoice.id, futures[0].fitness, futures[0].fitnessDetails);
+        console.log(futures[1].myChoice.id, futures[1].fitness, futures[1].fitnessDetails);
+        expect(future.myChoice.id).toEqual('roost');
+
+        // switching gears: we're at full health. don't choose to heal.
+        future.state.self.active.hp = 100;
+        future.state.self.active.hppct = 100;
+        const next = Iterator.iterateSingleThreaded(future.state, 1,
+          future.state.self.active.moves, future.state.opponent.active.moves);
+        const nexts = next.filter(node => node.myChoice && node.terminated)
+          .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+        const nextChoice = nexts[0];
+        console.log(nexts[0].myChoice.id, nexts[0].fitness, nexts[0].fitnessDetails);
+        console.log(nexts[1].myChoice.id, nexts[1].fitness, nexts[1].fitnessDetails);
+        expect(nextChoice.myChoice.id).toEqual('quickattack');
+      });
     });
   });
 });
