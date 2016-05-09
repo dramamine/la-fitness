@@ -37,8 +37,7 @@ export default class Main {
   team() {
     console.log('OK, my team function was called.');
     // if this gets called use a predetermined random team.
-    // @TODO hardcoded to a Slowking team.
-    return Team.random(0);
+    return Team.random();
   }
 
   branchPicker(state) {

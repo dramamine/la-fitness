@@ -4,5 +4,6 @@
   "description": "First stab at an awesome bot for random battles",
   "main": "src/main.js",
   "format": "randombattle",
-  "accepts": "randombattle"
+  "accepts": "ALL",
+  "nickname": "LA-Fitness ★ms★"
 }
