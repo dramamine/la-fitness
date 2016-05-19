@@ -2,10 +2,10 @@
  * Get some helpful info about pokemon & their moves
  *
  */
-import Damage from 'lib/damage';
-import Formats from 'data/formats';
-import Util from 'pokeutil';
-import Log from 'log';
+import Damage from 'leftovers-again/lib/lib/damage';
+import Formats from 'leftovers-again/lib/data/formats';
+import Util from 'leftovers-again/lib/pokeutil';
+import Log from 'leftovers-again/lib/log';
 
 class Fitness {
 

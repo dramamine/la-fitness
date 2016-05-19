@@ -1,9 +1,9 @@
-import Damage from 'lib/damage';
+import Damage from 'leftovers-again/lib/lib/damage';
 import KO from './komodded';
 // import Fitness from './fitness';
-import util from 'pokeutil';
-import Log from 'log';
-import volatileStatuses from 'constants/volatileStatuses';
+import util from 'leftovers-again/lib/pokeutil';
+import Log from 'leftovers-again/lib/log';
+import volatileStatuses from 'leftovers-again/lib/constants/volatileStatuses';
 
 class TurnSimulator {
 

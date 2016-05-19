@@ -1,9 +1,9 @@
 import Evaluator from './evaluator';
-import Formats from 'data/formats';
-import util from 'pokeutil';
-import Log from 'log';
+import Formats from 'leftovers-again/lib/data/formats';
+import util from 'leftovers-again/lib/pokeutil';
+import Log from 'leftovers-again/lib/log';
 import Weaver from './weaver';
-import Damage from 'lib/damage';
+import Damage from 'leftovers-again/lib/lib/damage';
 import NodeReporter from './nodeReporter';
 
 class Iterator {

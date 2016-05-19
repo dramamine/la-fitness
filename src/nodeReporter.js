@@ -1,4 +1,4 @@
-import MatchStatus from 'reporters/matchstatus';
+import MatchStatus from 'leftovers-again/lib/reporters/matchstatus';
 
 class NodeReporter {
   report(node) {
