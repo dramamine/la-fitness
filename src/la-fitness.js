@@ -1,9 +1,8 @@
 import Log from 'leftovers-again/lib/log';
 import Iterator from './iterator';
 import NodeReporter from './nodeReporter';
-// import {MOVE, SWITCH} from 'decisions';
+import {MOVE, SWITCH} from 'leftovers-again/lib/decisions';
 // import Team from 'lib/team';
-import LeftoversAgain from 'leftovers-again';
 
 
 Iterator.prepare();

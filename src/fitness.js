@@ -2,7 +2,7 @@
  * Get some helpful info about pokemon & their moves
  *
  */
-import Damage from 'leftovers-again/lib/lib/damage';
+import Damage from 'leftovers-again/lib/game/damage';
 import Formats from 'leftovers-again/lib/data/formats';
 import Util from 'leftovers-again/lib/pokeutil';
 import Log from 'leftovers-again/lib/log';

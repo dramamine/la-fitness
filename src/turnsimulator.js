@@ -1,4 +1,4 @@
-import Damage from 'leftovers-again/lib/lib/damage';
+import Damage from 'leftovers-again/lib/game/damage';
 import KO from './komodded';
 // import Fitness from './fitness';
 import util from 'leftovers-again/lib/pokeutil';

@@ -5,5 +5,12 @@
   "main": "src/main.js",
   "format": "randombattle",
   "accepts": "ALL",
-  "nickname": "LA-Fitness ★ms★"
+  "nickname": "LA-Fitness ★ms★",
+  "scripts": {
+    "init": "./node_modules/leftovers-again/lib/scripts/generate.js"
+  },
+  "dependencies": {
+    "babel-preset-es2015-node6": "^0.2.0",
+    "leftovers-again": "dramamine/leftovers-again.git#moduleify"
+  }
 }
