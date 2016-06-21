@@ -1,7 +1,7 @@
-import util from 'pokeutil';
-import Iterator from 'la-fitness/src/iterator';
-import nodeReporter from 'la-fitness/src/nodeReporter';
-import Fitness from 'la-fitness/src/fitness';
+import util from 'leftovers-again/lib/pokeutil';
+import Iterator from 'la-fitness/iterator';
+import nodeReporter from 'la-fitness/nodeReporter';
+import Fitness from 'la-fitness/fitness';
 
 describe('nodeReporter', () => {
   let state;

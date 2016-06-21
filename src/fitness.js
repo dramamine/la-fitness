@@ -124,14 +124,14 @@ class Fitness {
       Formats[Util.toId(attacker.species)].randomBattleMoves
       .map(id => Util.researchMoveById(id));
 
-    moves.forEach( (move) => {
-      if (move.disabled) return;
+    moves.forEach( (mv) => {
+      if (mv.disabled) return;
       let est = -1;
       try {
         est = Damage.getDamageResult(
           attacker,
           defender,
-          move,
+          mv,
           {},
           true
         );
@@ -140,7 +140,7 @@ class Fitness {
       }
       if (est > maxDmg) {
         maxDmg = est;
-        bestMove = move;
+        bestMove = mv;
       }
     });
     // sometimes no moves do any damage :(

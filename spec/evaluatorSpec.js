@@ -1,5 +1,5 @@
-import Evaluator from 'la-fitness/src/evaluator';
-import util from 'pokeutil';
+import Evaluator from 'la-fitness/evaluator';
+import util from 'leftovers-again/lib/pokeutil';
 
 describe('evaluator', () => {
   describe('evaluateNode', () => {

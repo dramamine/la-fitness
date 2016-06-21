@@ -22,10 +22,10 @@ export default class Main {
           console.log(node);
         }
         if (node.myChoice.move) {
-          return resolve(new LeftoversAgain.MOVE(node.myChoice.id));
+          return resolve(new MOVE(node.myChoice.id));
         } else if (node.myChoice.species) {
           console.log('Gonna switch into ' + node.myChoice.id);
-          return resolve(new LeftoversAgain.SWITCH(node.myChoice.id));
+          return resolve(new SWITCH(node.myChoice.id));
         }
 
         Log.error('couldnt read the result of my search.');

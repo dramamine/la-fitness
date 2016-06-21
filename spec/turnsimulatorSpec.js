@@ -1,6 +1,6 @@
-import util from 'pokeutil';
-import TurnSimulator from 'la-fitness/src/turnsimulator';
-import Damage from 'lib/damage';
+import Damage from 'leftovers-again/lib/game/damage';
+import util from 'leftovers-again/lib/pokeutil';
+import TurnSimulator from 'la-fitness/turnsimulator';
 
 describe('turn simulator', () => {
   // describe('_arrayReducer', () => {

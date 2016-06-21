@@ -1,6 +1,6 @@
-import Iterator from 'la-fitness/src/iterator';
-import NodeReporter from 'la-fitness/src/nodeReporter';
-import util from 'pokeutil';
+import Iterator from 'la-fitness/iterator';
+// import NodeReporter from 'la-fitness/nodeReporter';
+import util from 'leftovers-again/lib/pokeutil';
 
 describe('iterator', () => {
   describe('iterate', () => {

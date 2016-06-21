@@ -1,5 +1,5 @@
-import Fitness from 'la-fitness/src/fitness';
-import util from 'pokeutil';
+import Fitness from 'la-fitness/fitness';
+import util from 'leftovers-again/lib/pokeutil';
 
 describe('Fitness', () => {
   describe('_getMaxDmg', () => {

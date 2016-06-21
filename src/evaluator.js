@@ -1,7 +1,7 @@
-import TurnSimulator from './turnsimulator';
 import Formats from 'leftovers-again/lib/data/formats';
 import Log from 'leftovers-again/lib/log';
 import Fitness from './fitness';
+import TurnSimulator from './turnsimulator';
 
 class Evaluator {
 
