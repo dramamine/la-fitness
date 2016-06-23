@@ -14,25 +14,38 @@ export default class Main {
       return new SWITCH(0);
     }
 
-    return new Promise((resolve, reject) => {
-      this.branchPicker(state).then((node) => {
-        console.log('found my node.');
-        if (!node.myChoice) {
-          Log.error('well, this is troubling. no myChoice in the node.');
-          console.log(node);
-        }
-        if (node.myChoice.move) {
-          return resolve(new MOVE(node.myChoice.id));
-        } else if (node.myChoice.species) {
-          console.log('Gonna switch into ' + node.myChoice.id);
-          return resolve(new SWITCH(node.myChoice.id));
-        }
+    // single-threaded
+    const choice = this.trunkPicker(state);
+    if (!choice) {
+      Log.error('well, this is troubling. no choice in the trunkpicker result.');
+      return null;
+    }
+    if (choice.move) {
+      return new MOVE(choice.id);
+    } else if (choice.species) {
+      return new SWITCH(choice.id);
+    }
 
-        Log.error('couldnt read the result of my search.');
-        console.log(node);
-        reject(node);
-      });
-    });
+    // multithreaded code
+    // return new Promise((resolve, reject) => {
+    //   this.branchPicker(state).then((node) => {
+    //     console.log('found my node.');
+    //     if (!node.myChoice) {
+    //       Log.error('well, this is troubling. no myChoice in the node.');
+    //       console.log(node);
+    //     }
+    //     if (node.myChoice.move) {
+    //       return resolve(new MOVE(node.myChoice.id));
+    //     } else if (node.myChoice.species) {
+    //       console.log('Gonna switch into ' + node.myChoice.id);
+    //       return resolve(new SWITCH(node.myChoice.id));
+    //     }
+
+    //     Log.error('couldnt read the result of my search.');
+    //     console.log(node);
+    //     reject(node);
+    //   });
+    // });
   }
 
   // team() {
@@ -41,32 +54,88 @@ export default class Main {
   //   return Team.random();
   // }
 
+  /**
+   * Single-threaded result picker.
+   *
+   * @param  {[type]} state The game state
+   * @return {Decision}       The choice.
+   */
+  trunkPicker(state) {
+    // get the results
+    let futures = Iterator.iterateSingleThreaded(state, 1);
+    this.blog(state, futures);
+
+    // arrange our array best->worst
+    futures = futures.filter(node => node.myChoice && node.terminated)
+    .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+
+    let node = futures[0];
+    if (!node) {
+      Log.error('no node in the future array.');
+      return null;
+    }
+
+    // get the original node (i.e. root is the last turn, follow prevNode to
+    // the first)
+    while (node.prevNode && node.prevNode.prevNode) {
+      node = node.prevNode;
+    }
+
+    if (!node.myChoice) {
+      Log.error('node didnt have a choice set.');
+      return null;
+    }
+    return node.myChoice;
+  }
+
   branchPicker(state) {
     return new Promise((resolve) => {
-      Iterator.iterateMultiThreaded(state, 3).then((nodes) => {
-        console.log('im back from iterating. ', nodes.length);
-        // console.log(nodes);
+      Iterator.iterateMultiThreaded(state, 2).then((nodes) => {
         // root node has no choice made. not sure I need this check though.
         const futures = nodes.filter(node => node.myChoice && node.terminated)
         .sort((a, b) => b.fitness - a.fitness); // highest fitness first
-        const future = futures[0];
 
-        // console.log('best future?', future);
-        // to reach this future, we must reach through the past, and find the
-        // choice we originally made to get us here.
-
-        // console.log(JSON.stringify(futures));
-        // console.log('(all evaluated nodes in sorted order)');
-
-        console.log(NodeReporter.report(future));
+        this.blog(state, futures);
 
         let node = future;
         while (node.prevNode && node.prevNode.prevNode) {
           node = node.prevNode;
         }
-        console.log(NodeReporter.report(node));
+
         resolve(node);
       });
     });
+  }
+
+  /**
+   * Write about your choices.
+   *
+   * @param  {[type]} state [description]
+   * @param  {[type]} nodes [description]
+   * @return {[type]}       [description]
+   */
+  blog(state, nodes) {
+    if (nodes.length <= 1) {
+      console.error('Nodes was too short to blog about.');
+      return;
+    }
+    NodeReporter.intermediateReporter(nodes);
+
+    const summarize = (n) => {
+      return {
+        plan: NodeReporter.recursiveMoves(n),
+        fitness: n.fitness
+      };
+    };
+
+    // log permanently
+    const filename = new Date().toTimeString().slice(0, 8).replace(/:/g, '-') + '.' + state.rqid;
+    const summary = {
+      first: summarize(nodes[0]),
+      second: summarize(nodes[1])
+    };
+    const contents = { summary, state, first: nodes[0], second: nodes[1] || null };
+    Log.toFile(filename, JSON.stringify(contents));
+    Log.log(`Wrote state and stuff to file: ./log/${filename}`);
   }
 }

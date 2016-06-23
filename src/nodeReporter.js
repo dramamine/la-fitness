@@ -22,7 +22,7 @@ class NodeReporter {
 
   reportCondensed(node) {
     const lines = [];
-    lines.push(`fitness: ${Math.round(node.fitness, 2)}`);
+    lines.push(`fitness: ${node.fitness.toFixed(2)}`);
     lines.push(`moves chosen: ${this.recursiveMoves(node)}`);
     lines.push(`(my dudes hp: ${node.state.self.active.species} ${node.state.self.active.hp
     } vs your hp: ${node.state.opponent.active.species} ${node.state.opponent.active.hppct})`);
@@ -43,6 +43,13 @@ class NodeReporter {
     return mine;
   }
 
+
+  /**
+   * @TODO make this work with arbitrary number of moves
+   *
+   * @param  {[type]} nodes [description]
+   * @return {[type]}       [description]
+   */
   intermediateReporter(nodes) {
     console.log('INTERMEDIATE NODE REPORTER: ' + nodes.length + ' nodes');
     const sorted = nodes
@@ -73,7 +80,8 @@ class NodeReporter {
     while (earlier.prevNode && earlier.prevNode.myChoice) {
       earlier = earlier.prevNode;
     }
-    return earlier.myChoice.id;
+    if (earlier.myChoice) return earlier.myChoice.id;
+    return null;
   }
 
 }

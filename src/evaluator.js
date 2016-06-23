@@ -60,11 +60,15 @@ class Evaluator {
       depth: depth - 1
     };
 
+    // imagine what would happen if your opponent used their second-best move
+    // instead. you can look at the fitness differential between the possible
+    // fitnesses here and decide if it's worth taking this risk and playing
+    // less conservatively.
     if (whatCouldHappen.length > 1) {
       const betterCase = whatCouldHappen[1];
       evaluated.betterCase = {
         risk: this._considerSecondWorstCase(state, worstCase, betterCase),
-        fitness: betterCase.fitness
+        fitness: betterCase.possibilities[0].fitnessDetails
       };
     }
 

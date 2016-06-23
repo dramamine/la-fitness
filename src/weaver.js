@@ -21,6 +21,11 @@ export default class Weaver {
     this.evaluated = [];
   }
 
+  busyThreads() {
+    const busy = threads.filter(thread => thread.status === statuses.BUSY);
+    return busy.length;
+  }
+
   useCallback(fn) {
     this.callback = fn;
   }
@@ -57,9 +62,7 @@ export default class Weaver {
     result.thread.on('message', (event) => {
       switch (event.type) {
       case 'result':
-        // console.log('sw8, got my response from the thread.', event);
         const evaluated = event.evaluated;
-        // console.log(evaluated.fitness);
         if (this.callback) {
           this.callback([evaluated]);
         }

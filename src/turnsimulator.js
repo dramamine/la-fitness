@@ -1,3 +1,4 @@
+
 import Damage from 'leftovers-again/lib/game/damage';
 import KO from './komodded';
 // import Fitness from './fitness';
@@ -285,7 +286,7 @@ class TurnSimulator {
     // so technically, this really shouldn't be attacked to Pokemon, but since
     // I don't have access to 'state' itself, I gotta just throw this on here.
     if (move.sideCondition) {
-      if (move.target === 'allySide') {
+      if (move.target === 'allySide' || move.target === 'self') {
         if (!attacker.sideConditions) {
           attacker.sideConditions = [];
         }
@@ -297,7 +298,7 @@ class TurnSimulator {
         defender.sideConditions.push(move.sideCondition);
       } else {
         Log.error('Not sure what to do with this side effect. target was ' + move.target);
-        Log.error(move);
+        console.error(move);
       }
     }
 
@@ -390,6 +391,11 @@ class TurnSimulator {
         possible.defender.boosts = util.boostCombiner(possible.defender.boosts,
           move.boosts);
       }
+    }
+
+    if (isNaN(possible.attacker.hp) || isNaN(possible.attacker.maxhp) ) {
+      console.error('bailing out! nonnumeric HPs');
+      console.error(possible.attacker);
     }
 
     if (move.heal) {
