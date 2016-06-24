@@ -4,8 +4,11 @@ import NodeReporter from './nodeReporter';
 import {MOVE, SWITCH} from 'leftovers-again/lib/decisions';
 // import Team from 'lib/team';
 
+const multithreaded = false;
 
-Iterator.prepare();
+if (multithreaded) {
+  Iterator.prepare();
+}
 
 export default class Main {
   decide(state) {
@@ -14,38 +17,48 @@ export default class Main {
       return new SWITCH(0);
     }
 
-    // single-threaded
-    const choice = this.trunkPicker(state);
-    if (!choice) {
-      Log.error('well, this is troubling. no choice in the trunkpicker result.');
-      return null;
-    }
-    if (choice.move) {
-      return new MOVE(choice.id);
-    } else if (choice.species) {
-      return new SWITCH(choice.id);
+    if (!multithreaded) {
+
+      // single-threaded
+      let choice = null;
+      try {
+        choice = this.trunkPicker(state);
+      } catch(e) {
+        console.error(e);
+        this.blog(state, null);
+      }
+
+      if (!choice) {
+        Log.error('well, this is troubling. no choice in the trunkpicker result.');
+        return null;
+      }
+      if (choice.move) {
+        return new MOVE(choice.id);
+      } else if (choice.species) {
+        return new SWITCH(choice.id);
+      }
     }
 
     // multithreaded code
-    // return new Promise((resolve, reject) => {
-    //   this.branchPicker(state).then((node) => {
-    //     console.log('found my node.');
-    //     if (!node.myChoice) {
-    //       Log.error('well, this is troubling. no myChoice in the node.');
-    //       console.log(node);
-    //     }
-    //     if (node.myChoice.move) {
-    //       return resolve(new MOVE(node.myChoice.id));
-    //     } else if (node.myChoice.species) {
-    //       console.log('Gonna switch into ' + node.myChoice.id);
-    //       return resolve(new SWITCH(node.myChoice.id));
-    //     }
+    return new Promise((resolve, reject) => {
+      this.branchPicker(state).then((node) => {
+        console.log('found my node.');
+        if (!node.myChoice) {
+          Log.error('well, this is troubling. no myChoice in the node.');
+          console.log(node);
+        }
+        if (node.myChoice.move) {
+          return resolve(new MOVE(node.myChoice.id));
+        } else if (node.myChoice.species) {
+          console.log('Gonna switch into ' + node.myChoice.id);
+          return resolve(new SWITCH(node.myChoice.id));
+        }
 
-    //     Log.error('couldnt read the result of my search.');
-    //     console.log(node);
-    //     reject(node);
-    //   });
-    // });
+        Log.error('couldnt read the result of my search.');
+        console.log(node);
+        reject(node);
+      });
+    });
   }
 
   // team() {
@@ -115,8 +128,14 @@ export default class Main {
    * @return {[type]}       [description]
    */
   blog(state, nodes) {
-    if (nodes.length <= 1) {
-      console.error('Nodes was too short to blog about.');
+    if (!nodes || nodes.length <= 1) {
+      // console.error('Nodes was too short to blog about.');
+
+      const contents = {state};
+      const filename = new Date().toTimeString().slice(0, 8).replace(/:/g, '-') + '.err';
+      if (Log.toFile(filename, JSON.stringify(contents)) ) {
+        Log.log(`Wrote state only (no decision nodes) to file: ./log/${filename}`);
+      }
       return;
     }
     NodeReporter.intermediateReporter(nodes);
@@ -135,7 +154,10 @@ export default class Main {
       second: summarize(nodes[1])
     };
     const contents = { summary, state, first: nodes[0], second: nodes[1] || null };
-    Log.toFile(filename, JSON.stringify(contents));
-    Log.log(`Wrote state and stuff to file: ./log/${filename}`);
+
+    // if we log successfully, say so. otherwise, maybe we are unit testing?
+    if (Log.toFile(filename, JSON.stringify(contents)) ) {
+      Log.log(`Wrote state and stuff to file: ./log/${filename}`);
+    }
   }
 }
