@@ -1,5 +1,5 @@
 import fs from 'fs';
-import LAFitness from '../src/la-fitness';
+import LAFitness from 'la-fitness';
 import Log from 'leftovers-again/lib/log';
 
 // @TODO
@@ -15,7 +15,7 @@ const stateLoader = (filename) => {
 
 let bot;
 
-fdescribe('_integration', () => {
+describe('_integration', () => {
   beforeEach( () => {
     bot = new LAFitness();
     spyOn(Log, 'toFile');

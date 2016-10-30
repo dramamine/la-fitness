@@ -1,4 +1,4 @@
-import KO from 'la-fitness/komodded';
+import KO from 'komodded';
 
 describe('KOModded', () => {
   describe('_getDistribution', () => {

@@ -1,4 +1,4 @@
-import Evaluator from 'la-fitness/evaluator';
+import Evaluator from 'evaluator';
 import util from 'leftovers-again/lib/pokeutil';
 
 describe('evaluator', () => {

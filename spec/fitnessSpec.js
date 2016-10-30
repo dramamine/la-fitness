@@ -1,4 +1,4 @@
-import Fitness from 'la-fitness/fitness';
+import Fitness from 'fitness';
 import util from 'leftovers-again/lib/pokeutil';
 
 describe('Fitness', () => {

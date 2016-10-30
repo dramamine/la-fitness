@@ -1,4 +1,4 @@
-import Iterator from 'la-fitness/iterator';
+import Iterator from 'iterator';
 // import NodeReporter from 'la-fitness/nodeReporter';
 import util from 'leftovers-again/lib/pokeutil';
 
