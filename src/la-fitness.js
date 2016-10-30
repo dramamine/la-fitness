@@ -18,7 +18,6 @@ export default class Main {
     }
 
     if (!multithreaded) {
-
       // single-threaded
       let choice = null;
       try {

@@ -10,13 +10,23 @@ import Log from 'leftovers-again/lib/log';
 class Fitness {
 
   rate(state, depth = 1) {
-    // from state, hits I will endure to kill opponent
-    const endurance = this._getHitsEndured(state.self.active,
-      state.opponent.active);
+    let endurance;
+    let block;
+    try {
+      // from state, hits I will endure to kill opponent
+      endurance = this._getHitsEndured(state.self.active,
+        state.opponent.active);
 
-    // from state, hits opponent will endure to kill me
-    const block = this._getHitsEndured(state.opponent.active,
-      state.self.active);
+      // from state, hits opponent will endure to kill me
+      block = this._getHitsEndured(state.opponent.active,
+        state.self.active);      
+    } catch (e) {
+      console.log('Fitness.rate failed when calling _getHitsEndured');
+      console.error(e);
+      console.error(state.self.active);
+      console.error(state.opponent.active);
+      throw e;
+    }
 
     // sigh, for fixing tests. sry
     if (!state.self.reserve) state.self.reserve = [];

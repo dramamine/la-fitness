@@ -86,13 +86,12 @@ class TurnSimulator {
       try {
         afterFirst = this._simulateMove({attacker: first, defender: second});
       } catch(e) {
-        Log.error('Something broke. check simulation-errors.out for details.');
-        Log.toFile('simulation-errors.out', JSON.stringify(state) );
-        Log.toFile('simulation-errors.out', JSON.stringify(myChoice) );
-        Log.toFile('simulation-errors.out', JSON.stringify(yourChoice) );
-        Log.toFile('simulation-errors.out', JSON.stringify(attacker) );
-        Log.toFile('simulation-errors.out', JSON.stringify(defender) );
-        Log.toFile('simulation-errors.out', '\n' );
+        console.error('simulate move broke');
+        console.error(JSON.stringify(state) );
+        console.error(JSON.stringify(myChoice) );
+        console.error(JSON.stringify(yourChoice) );
+        console.error(JSON.stringify(attacker) );
+        console.error(JSON.stringify(defender) );
       }
     } else {
       const switched = util.clone(first.switch);
@@ -133,17 +132,18 @@ class TurnSimulator {
             defender: possibility.attacker
           });
         } catch(e) {
-          Log.error('Something broke. check simulation-errors.out for details.');
-          Log.toFile('simulation-errors.out', JSON.stringify(state) );
-          Log.toFile('simulation-errors.out', JSON.stringify(myChoice) );
-          Log.toFile('simulation-errors.out', JSON.stringify(yourChoice) );
-          Log.toFile('simulation-errors.out', JSON.stringify(possibility) );
-          Log.toFile('simulation-errors.out', '\n' );
+          Log.error('Something broke when simulating move');
+          Log.error(e);
+          Log.error( JSON.stringify(state) );
+          Log.error( JSON.stringify(myChoice) );
+          Log.error( JSON.stringify(yourChoice) );
+          Log.error( JSON.stringify(possibility) );
         }
 
         Log.debug('after second move, attacker is:' + res[0].attacker.species);
         Log.debug('attacker hp:' + res[0].attacker.hp);
         Log.debug('defender hp:' + res[0].defender.hp);
+
         res.forEach( (poss) => {
           // notice that we convert back from attacker/defender distinction.
           const withChance = {
@@ -312,7 +312,7 @@ class TurnSimulator {
     }
 
     const dmg = Damage.getDamageResult(attacker, defender, move);
-    // Log.debug('using dmg', dmg);
+    console.warn('using dmg', dmg);
     // const dmg = 40;
     const { koturns, kochance } = KO.predictKO(dmg, defender);
     const possible = [];
@@ -402,11 +402,19 @@ class TurnSimulator {
       possible.attacker.hp = Math.min(possible.attacker.maxhp,
         possible.attacker.hp + (possible.attacker.maxhp * move.heal[0] / move.heal[1]));
       possible.attacker.hppct = 100 * possible.attacker.hp / possible.attacker.maxhp;
+      if (isNaN(possible.attacker.hp)) {
+        console.error('ended up with NaN hp for a heal move');
+        console.error(possible.attacker, dmg, move);
+      }
     }
 
     if (move.drain) {
       possible.attacker.hp = Math.min(possible.attacker.maxhp,
         possible.attacker.hp + (dmg * move.drain[0] / move.drain[1]));
+      if (isNaN(possible.attacker.hp)) {
+        console.error('ended up with NaN hp for a drain move');
+        console.error(possible.attacker, dmg, move);
+      }
     }
 
     // handle status moves
@@ -484,6 +492,11 @@ class TurnSimulator {
     res.hp = Math.max(0, mon.hp - dmg);
     if (res.hp === 0) {
       return this._kill(res);
+    }
+    if (isNaN(res.hp)) {
+      console.log('got NaN for hp');
+      console.log(mon.hp, dmg);
+      process.exit();
     }
     res.hppct = 100 * res.hp / res.maxhp;
     return res;

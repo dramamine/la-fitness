@@ -19,6 +19,10 @@ class Evaluator {
         yourChoice
       );
       possibilities.forEach((possibility) => {
+        if (isNaN(possibility.state.self.active.hp)) {
+          console.log('stop the presses');
+          process.exit();
+        }
         possibility.fitnessDetails = Fitness.rate(possibility.state, depth);
         possibility.fitness = possibility.fitnessDetails.summary;
         if (isNaN(possibility.fitness)) {

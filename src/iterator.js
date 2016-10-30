@@ -143,11 +143,25 @@ class Iterator {
   }
 
   _makeAssumptions(state) {
-    if (state.self.active) {
-      state.self.active = Damage.assumeStats(state.self.active);
+    if (state.self.active && state.self.active.id) {
+      try {
+        state.self.active = Damage.assumeStats(state.self.active);
+      } catch (e) {
+        console.log('tried to assume stats on this guy:');
+        console.log(state.self.active);
+        console.log(state.self);
+        process.exit();
+      }
     }
-    if (state.opponent.active) {
-      state.opponent.active = Damage.assumeStats(state.opponent.active);
+    if (state.opponent.active && state.opponent.active.id) {
+      try {
+        state.opponent.active = Damage.assumeStats(state.opponent.active);
+      } catch (e) {
+        console.log('tried to assume stats on opponents guy:');
+        console.log(state.opponent.active);
+        console.log(state.self);
+        process.exit();
+      }
     }
     return state;
   }
@@ -189,6 +203,11 @@ class Iterator {
     // @TODO consider Choice Items
     if (!state.opponent.active || !state.opponent.active.species) return null;
     const moves = Formats[util.toId(state.opponent.active.species)].randomBattleMoves;
+    if (!moves) {
+      Log.error('couldnt find options for this mon:');
+      Log.error(state.opponent.active.species);
+      return [util.researchMoveById('splash')];
+    }
     return moves.map(move => util.researchMoveById(move));
   }
 

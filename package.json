@@ -8,21 +8,29 @@
   "nickname": "LA-Fitness8735",
   "dependencies": {
     "babel-cli": "*",
-    "babel-preset-es2015": "*",
-    "leftovers-again": "0.*"
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-es2015-node6": "^0.3.0",
+    "babel-register": "^6.18.0",
+    "leftovers-again": "^0.8.2"
   },
   "scripts": {
     "babel": "babel src/ -d lib",
-    "babel:watch": "babel src/ -d lib -w",
-    "dev": "nodemon --watch src --exec babel-node src/main.js",
-    "test": "node ./node_modules/jasmine-es6/bin/jasmine.js",
-    "build": "npm run babel",
-    "start": "node lib/main.js",
-    "server": "printf `you fill this out! cd path/to/Pokemon-Showdown && npm start`"
+    "babel:watch": "cd src && onchange '**/*.js' -v -- babel {{changed}} -d ../lib",
+    "build": "npm-run-all clean babel",
+    "clean": "rimraf lib",
+    "develop": "npm-run-all build --parallel babel:watch 'start:watch -- {@}' --",
+    "start": "npm run build && node lib/main.js",
+    "start:quick": "babel-node src/main.js",
+    "start:watch": "nodemon -w lib lib/main.js",
+    "server": "cd Pokemon-Showdown && npm start",
+    "test": "node ./node_modules/jasmine-es6/bin/jasmine.js"
   },
   "devDependencies": {
     "babel-plugin-module-resolver": "*",
     "babel-resolve-relative-module": "*",
-    "jasmine-es6": "*"
+    "jasmine-es6": "*",
+    "nodemon": "*",
+    "npm-run-all": "*",
+    "onchange": "*"
   }
 }
