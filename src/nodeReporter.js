@@ -24,8 +24,10 @@ class NodeReporter {
     const lines = [];
     lines.push(`fitness: ${node.fitness.toFixed(2)}`);
     lines.push(`moves chosen: ${this.recursiveMoves(node)}`);
-    lines.push(`(my dudes hp: ${node.state.self.active.species} ${node.state.self.active.hp
-    } vs your hp: ${node.state.opponent.active.species} ${node.state.opponent.active.hppct})`);
+    lines.push(`(my dudes hp: ${node.state.self.active.species} ${
+      Math.round(node.state.self.active.hp)
+    } vs your hp: ${node.state.opponent.active.species} ${
+      Math.round(node.state.opponent.active.hppct)})`);
     return lines.join('\n');
   }
   recursiveMatchStatuses(node) {

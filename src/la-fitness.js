@@ -1,6 +1,7 @@
 import Log from 'leftovers-again/lib/log';
 import Iterator from './iterator';
 import NodeReporter from './nodeReporter';
+import MonkeyReporter from './monkeyReporter';
 import {MOVE, SWITCH} from 'leftovers-again/lib/decisions';
 // import Team from 'lib/team';
 
@@ -12,6 +13,9 @@ if (multithreaded) {
 
 export default class Main {
   decide(state) {
+    // for developing locally
+    this.getHelp(state);
+
     // won't happen for randombattles, but lazily handle for anythinggoes
     if (state.teamPreview) {
       return new SWITCH(0);
@@ -58,6 +62,42 @@ export default class Main {
         reject(node);
       });
     });
+  }
+
+  getHelp(state) {
+    let choice = null;
+    let futures = Iterator.iterateSingleThreaded(state, 1);
+    // this.blog(state, futures);
+
+    // arrange our array best->worst
+    futures = futures.filter(node => node.myChoice && node.terminated)
+    .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+
+    let node = futures[0];
+    if (!node) {
+      Log.error('no node in the future array.');
+      return null;
+    }
+
+    // get the original node (i.e. root is the last turn, follow prevNode to
+    // the first)
+    while (node.prevNode && node.prevNode.prevNode) {
+      node = node.prevNode;
+    }
+
+    // what's in a node?? send this to the server
+    const monkey = new MonkeyReporter();
+    monkey.use(state, node);
+
+    const response = monkey.get();
+    console.log(response);
+
+    // if (!choice) {
+    //   Log.error('well, this is troubling. no choice in the trunkpicker result.');
+    //   return null;
+    // }
+
+
   }
 
   // team() {

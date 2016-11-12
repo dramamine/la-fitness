@@ -312,7 +312,6 @@ class TurnSimulator {
     }
 
     const dmg = Damage.getDamageResult(attacker, defender, move);
-    console.warn('using dmg', dmg);
     // const dmg = 40;
     const { koturns, kochance } = KO.predictKO(dmg, defender);
     const possible = [];
