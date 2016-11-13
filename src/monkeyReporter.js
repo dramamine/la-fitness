@@ -4,7 +4,7 @@ class MonkeyReporter {
   constructor() {
     this.moves = [];
     this.switches = [];
-    this.opponent = [];
+    this.opponent = null;
   }
 	use(state, node, best = true) {
     if (node.myChoice.move) {
@@ -72,9 +72,9 @@ ${this.formatDetails(node.fitnessDetails)}
       }
       return `<li>${move}</li>`;
     });
-    this.opponent.push({
+    this.opponent = {
       html: `<ul class="lgn opponent">${html}</ul>`
-    });
+    };
   }
 
   formatDetails(deets) {

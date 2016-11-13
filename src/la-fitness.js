@@ -90,14 +90,8 @@ export default class Main {
     monkey.use(state, node);
 
     const response = monkey.get();
-    console.log(response);
-
-    // if (!choice) {
-    //   Log.error('well, this is troubling. no choice in the trunkpicker result.');
-    //   return null;
-    // }
-
-
+    // console.log(response);
+    return response;
   }
 
   // team() {
