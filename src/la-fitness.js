@@ -5,7 +5,8 @@ import MonkeyReporter from './monkeyReporter';
 import {MOVE, SWITCH} from 'leftovers-again/lib/decisions';
 // import Team from 'lib/team';
 
-const multithreaded = false;
+const multithreaded = true;
+const DEPTH = 3;
 
 if (multithreaded) {
   Iterator.prepare();
@@ -65,8 +66,44 @@ export default class Main {
   }
 
   getHelp(state) {
+    return new Promise((resolve, reject) => {
+      console.log('iterating...');
+      Iterator.iterateMultiThreaded(state, DEPTH).then((nodes) => {
+        // this.blog(state, futures);
+
+        // arrange our array best->worst
+        console.log('got some nodes back:', nodes.length);
+        let futures = nodes.filter(node => node.myChoice && node.terminated)
+          .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+
+        if (futures.length === 0) {
+          Log.warn('No terminated nodes; are you running this for long enough?');
+          futures = nodes.filter(node => node.myChoice)
+            .sort((a, b) => b.fitness - a.fitness);
+        }
+
+        let node = futures[0];
+
+        // get the original node (i.e. root is the last turn, follow prevNode to
+        // the first)
+        while (node.prevNode && node.prevNode.prevNode) {
+          node = node.prevNode;
+        }
+
+        console.log('sending node to server.', node.myChoice.id);
+        // what's in a node?? send this to the server
+        const monkey = new MonkeyReporter();
+        monkey.use(state, node);
+
+        const response = monkey.get();
+        resolve(response);
+      })
+    });
+  }
+
+  getHelpSingle(state) {
     let choice = null;
-    let futures = Iterator.iterateSingleThreaded(state, 1);
+    let futures = Iterator.iterateSingleThreaded(state, DEPTH);
     // this.blog(state, futures);
 
     // arrange our array best->worst
@@ -108,18 +145,20 @@ export default class Main {
    */
   trunkPicker(state) {
     // get the results
-    let futures = Iterator.iterateSingleThreaded(state, 1);
+    let futures = Iterator.iterateSingleThreaded(state, DEPTH);
     this.blog(state, futures);
 
     // arrange our array best->worst
     futures = futures.filter(node => node.myChoice && node.terminated)
     .sort((a, b) => b.fitness - a.fitness); // highest fitness first
 
-    let node = futures[0];
-    if (!node) {
-      Log.error('no node in the future array.');
-      return null;
+    if (futures.length === 0) {
+      Log.warn('No terminated nodes; are you running this for long enough?');
+      futures = nodes.filter(node => node.myChoice)
+        .sort((a, b) => b.fitness - a.fitness);
     }
+
+    let node = futures[0];
 
     // get the original node (i.e. root is the last turn, follow prevNode to
     // the first)
@@ -135,20 +174,26 @@ export default class Main {
   }
 
   branchPicker(state) {
-    return new Promise((resolve) => {
-      Iterator.iterateMultiThreaded(state, 2).then((nodes) => {
+    return new Promise((resolve, reject) => {
+      Iterator.iterateMultiThreaded(state, DEPTH).then((nodes) => {
         // root node has no choice made. not sure I need this check though.
-        const futures = nodes.filter(node => node.myChoice && node.terminated)
-        .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+        let futures = nodes.filter(node => node.myChoice && node.terminated)
+          .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+
+        if (futures.length === 0) {
+          Log.warn('No terminated nodes; are you running this for long enough?');
+          futures = nodes.filter(node => node.myChoice)
+            .sort((a, b) => b.fitness - a.fitness);
+        }
 
         this.blog(state, futures);
 
-        let node = future;
+        let node = futures[0];
         while (node.prevNode && node.prevNode.prevNode) {
           node = node.prevNode;
         }
 
-        resolve(node);
+        return resolve(node);
       });
     });
   }

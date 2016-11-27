@@ -43,8 +43,7 @@ class Iterator {
           // don't look at switches past the initial node.
           if (nextNode.prevNode && myChoice.species) return;
 
-          this.weaver.enqueue([nextNode, myChoice, util.clone(yourOptions),
-            nextNode.depth]);
+          this.weaver.enqueue([nextNode, myChoice, util.clone(yourOptions)]);
         });
         nextNode.evaluated = true;
       }
@@ -78,7 +77,8 @@ class Iterator {
         clearInterval(busies);
         clearTimeout(longsies);
         this.weaver.die();
-      }, 30000);
+      }, 10000);
+
       // setTimeout(() => {
       //   console.timeEnd('iterate');
       //   clearInterval(intermediate);
@@ -127,9 +127,8 @@ class Iterator {
       // node list debugging
       // console.log(`nodes list is currently ${nodes.length} long (${ nodes.filter(this.evaluatable).length} valid)`);
       const moreNodes = myOptions.map((myChoice) => { // eslint-disable-line
-        // Log.debug('my choice:' + JSON.stringify(myChoice.id));
         const evaluated = Evaluator.evaluateNode(nextNode, myChoice,
-          util.clone(yourOptions), depth);
+          util.clone(yourOptions));
         // console.log(`imagining I chose ${evaluated.myChoice.id} and you chose ` +
         //   `${evaluated.yourChoice.id}: ${evaluated.fitness}`);
         return evaluated;

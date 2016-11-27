@@ -5,8 +5,8 @@ import TurnSimulator from './turnsimulator';
 
 class Evaluator {
 
-  evaluateNode(node, myChoice, yourOptions, depth = 1) {
-    const state = node.state;
+  evaluateNode(node, myChoice, yourOptions) {
+    const {depth, state} = node;
     Log.debug('imagining I chose ' + myChoice.id);
 
     // simulate each of the opponent's choices

@@ -13,7 +13,7 @@ class MonkeyReporter {
       this.useSwitch(state, node);
     }
 
-    this.useOpponent(state);
+    this.useOpponent(state, node);
   }
 
   get() {
@@ -49,9 +49,6 @@ class MonkeyReporter {
 <p class="lgn fitness">
 ${this.formatDetails(node.fitnessDetails)}
 </p>
-<p class="lgn counter">
-  ${node.yourChoice ? node.yourChoice.id : '??'}
-</p>
 `;
       }
 
@@ -62,18 +59,22 @@ ${this.formatDetails(node.fitnessDetails)}
     });
   }
 
-  useOpponent(state) {
+  useOpponent(state, node) {
     if (!state.opponent || !state.opponent.active) return;
     const moves = Formats[state.opponent.active.id].randomBattleMoves;
     const seenMoves = state.opponent.active.seenMoves;
     const html = moves.map((move) => {
+      let moveText = move;
       if (seenMoves.indexOf(move) >= 0) {
-        return `<li><b>${move}</b></li>`;
+        moveText = `<b>${moveText}</b>`;
       }
-      return `<li>${move}</li>`;
+      if (move.indexOf(node.yourChoice.id) >= 0) {
+        moveText = `<i>${moveText}</i>`;
+      }
+      return `<li>${moveText}</li>`;
     });
     this.opponent = {
-      html: `<ul class="lgn opponent">${html}</ul>`
+      html: `<ul class="lgn opponent">${html.join('')}</ul>`
     };
   }
 
