@@ -19,7 +19,7 @@ class Fitness {
 
       // from state, hits opponent will endure to kill me
       block = this._getHitsEndured(state.opponent.active,
-        state.self.active);      
+        state.self.active);
     } catch (e) {
       console.log('Fitness.rate failed when calling _getHitsEndured');
       console.error(e);

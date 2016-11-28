@@ -314,6 +314,13 @@ describe('turn simulator', () => {
       expect(res[0].state.opponent.active.species).toEqual('Meowth');
       expect(res[3].state.self.active.species).toEqual('Eevee');
       expect(res[3].state.opponent.active.species).toEqual('Meowth');
+
+      // check the description
+      expect(res[0].state.description).toEqual([
+        'meowth casts dragonrage',
+        'eevee casts dragonrage',
+        '38 - 51'
+      ]);
     });
     it('should not swap mine and yours', () => {
       spyOn(Damage, 'goesFirst').and.returnValue(true);

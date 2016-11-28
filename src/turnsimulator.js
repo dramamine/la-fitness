@@ -30,6 +30,9 @@ class TurnSimulator {
     const yours = Damage.assumeStats( util.clone(state.opponent.active) );
     // console.log(`simulating battle btwn ${mine.species} casting ${myChoice.id} and ${yours.species} casting ${yourChoice.id}`);
 
+    // describe what happens
+    const description = state.description || [];
+
     if (myChoice.species) {
       mine.switch = myChoice;
       // not sure why I need this :\
@@ -85,6 +88,7 @@ class TurnSimulator {
     if (first.move) {
       try {
         afterFirst = this._simulateMove({attacker: first, defender: second});
+        description.push(`${first.id} casts ${first.move.id}`);
       } catch(e) {
         console.error('simulate move broke');
         console.error(JSON.stringify(state) );
@@ -97,6 +101,7 @@ class TurnSimulator {
       const switched = util.clone(first.switch);
       switched.switch = first.species; // ?? to know we switched?
       afterFirst = [{attacker: switched, defender: second, chance: 1}];
+      description.push(`${first.species} switches to ${switched.species}`);
       // Log.debug('switched! afterFirst is now');
       // Log.debug(afterFirst);
     }
@@ -131,6 +136,7 @@ class TurnSimulator {
             attacker: possibility.defender,
             defender: possibility.attacker
           });
+          description.push(`${possibility.defender.id} casts ${possibility.defender.move.id}`);
         } catch(e) {
           Log.error('Something broke when simulating move');
           Log.error(e);
@@ -140,9 +146,9 @@ class TurnSimulator {
           Log.error( JSON.stringify(possibility) );
         }
 
-        Log.debug('after second move, attacker is:' + res[0].attacker.species);
-        Log.debug('attacker hp:' + res[0].attacker.hp);
-        Log.debug('defender hp:' + res[0].defender.hp);
+        // Log.debug('after second move, attacker is:' + res[0].attacker.species);
+        // Log.debug('attacker hp:' + res[0].attacker.hp);
+        // Log.debug('defender hp:' + res[0].defender.hp);
 
         res.forEach( (poss) => {
           // notice that we convert back from attacker/defender distinction.
@@ -159,12 +165,19 @@ class TurnSimulator {
             withChance.state.self.active = poss.attacker;
             withChance.state.opponent.active = poss.defender;
           }
+
+          // add description to all states
+          withChance.state.description = description.concat(
+            `${withChance.state.self.active.hp} - ${withChance.state.opponent.active.hp}`
+          );
+
           afterSecond.push(withChance);
         });
       } else {
         // we both switched out, lawl.
         const switched = second.switch;
         switched.switch = second.species;
+
         // gotta maybe switch back.
         const withChance = {
           state: util.clone(state),
@@ -174,6 +187,17 @@ class TurnSimulator {
         // (you can't have a move happen first and a switch happen second)
         withChance.state.self.active = possibility.attacker;
         withChance.state.opponent.active = switched;
+
+
+        // attach description to all states
+        withChance.state.description = description.concat(
+          `${second.species} switches to ${switched.switch.species}`,
+          `${withChance.state.self.active.hp} - ${withChance.state.opponent.active.hp}`
+        );
+
+        console.log('added this description:', withChance.state.description);
+
+
         afterSecond.push(withChance);
       }
       // Log.debug('then mine is: ', afterSecond[afterSecond.length - 1].mine.species);

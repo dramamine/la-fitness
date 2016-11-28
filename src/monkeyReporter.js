@@ -6,6 +6,7 @@ class MonkeyReporter {
     this.switches = [];
     this.opponent = null;
   }
+
 	use(state, node, best = true) {
     if (node.myChoice.move) {
       this.useMove(node);

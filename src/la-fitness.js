@@ -66,7 +66,7 @@ export default class Main {
   }
 
   getHelp(state) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       console.log('iterating...');
       Iterator.iterateMultiThreaded(state, DEPTH).then((nodes) => {
         // this.blog(state, futures);
@@ -97,7 +97,7 @@ export default class Main {
 
         const response = monkey.get();
         resolve(response);
-      })
+      });
     });
   }
 

@@ -25,6 +25,8 @@ class Evaluator {
         }
         possibility.fitnessDetails = Fitness.rate(possibility.state, depth);
         possibility.fitness = possibility.fitnessDetails.summary;
+        possibility.fitnessDetails.chance = possibility.chance;
+
         if (isNaN(possibility.fitness)) {
           console.error('stop the presses! this state was rated wrong');
           console.error(possibility.state);
