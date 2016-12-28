@@ -53,7 +53,6 @@ describe('Fitness', () => {
       expect(Fitness._getHitsEndured(attacker, defender)).toEqual(1);
     });
     it('should calculate 1 for a fast 2HKO move', () => {
-      console.log('FAST 2HKO MOVE');
       spyOn(Fitness, '_probablyGoesFirst').and.returnValue(true);
       spyOn(Fitness, '_getMaxDmg').and.returnValue({maxDmg: 50, bestMove: move});
       expect(Fitness._getHitsEndured(attacker, defender)).toEqual(1);
@@ -230,7 +229,7 @@ describe('Fitness', () => {
       expect(updated.endurance).toEqual(orig.endurance);
       expect(updated.block).toBeGreaterThan(orig.block);
     });
-    it('should favor a situation where I kill someone but am hamed badly', () => {
+    it('should favor a situation where I kill someone but am harmed badly', () => {
       state.self.active.hppct = 100;
       const orig = Fitness.rate(state);
 

@@ -30,15 +30,14 @@ describe('evaluator', () => {
       yourOptions = [
         util.researchMoveById('waterpulse'),
         util.researchMoveById('swordsdance'),
-        util.researchMoveById('toxic'),
+        util.researchMoveById('toxic')
       ];
     });
     it('should notice the worst situation kills us', () => {
       // onix is 4x weak to water.
       const myMove = util.researchMoveById('splash');
-      const node = {state};
+      const node = {state, depth: 1};
       const res = Evaluator.evaluateNode(node, myMove, yourOptions);
-      console.log(res);
       expect(res.fitness).toBeLessThan(0);
       expect(res.state.self.active.dead).toBe(true);
       expect(res.state.self.active.hp).toEqual(0);

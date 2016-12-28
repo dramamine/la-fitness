@@ -29,7 +29,9 @@ class Evaluator {
 
         if (isNaN(possibility.fitness)) {
           console.error('stop the presses! this state was rated wrong');
-          console.error(possibility.state);
+          console.error(JSON.stringify(possibility.state));
+          console.error(JSON.stringify(possibility.fitnessDetails));
+          exit();
         }
       });
       const expectedValue = possibilities.reduce((prev, item) => {

@@ -33,12 +33,10 @@ class Fitness {
     if (!state.opponent.reserve) state.opponent.reserve = [];
 
     // @TODO ugh lazy, just adding reserve and current hps
-    const myHealth = this.partyFitness(
-      state.self.reserve.filter(mon => !mon.active), state.self.side) +
-      this.selfFitness(state.self.active);
-    const yourHealth = this.partyFitness(
-      state.opponent.reserve.filter(mon => !mon.active), state.opponent.side) +
-      this.selfFitness(state.opponent.active);
+    const myHealth = this.selfFitness(state.self.active) + this.partyFitness(
+      state.self.reserve.filter(mon => !mon.active), state.self.side);
+    const yourHealth = this.selfFitness(state.opponent.active) + this.partyFitness(
+      state.opponent.reserve.filter(mon => !mon.active), state.opponent.side);
 
     // hmm. this is gonna range from like -9 to 9
     // @TODO run this through a spreadsheet or something! jc so random
@@ -56,7 +54,8 @@ class Fitness {
 
   selfFitness(mon) {
     if (mon.dead) return 0;
-    return mon.hppct;
+    if (mon.hppct) return mon.hppct;
+    return 100 * mon.hp / mon.maxhp;
   }
 
   partyFitness(party = [], side = {}) {
@@ -70,7 +69,6 @@ class Fitness {
         return !mon.dead;
       }).length;
       const potentialDamage = 100 * (alive - 1) * spikesFactor;
-      console.log('lookin at spikes.', potentialDamage);
       sumHp -= Math.floor(potentialDamage, 0);
     }
     return sumHp;

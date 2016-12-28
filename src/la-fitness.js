@@ -5,7 +5,7 @@ import MonkeyReporter from './monkeyReporter';
 import {MOVE, SWITCH} from 'leftovers-again/lib/decisions';
 // import Team from 'lib/team';
 
-const multithreaded = true;
+const multithreaded = false;
 const DEPTH = 3;
 
 if (multithreaded) {

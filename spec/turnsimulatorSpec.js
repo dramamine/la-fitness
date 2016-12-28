@@ -2,7 +2,7 @@ import TurnSimulator from 'turnsimulator';
 import Damage from 'leftovers-again/lib/game/damage';
 import util from 'leftovers-again/lib/pokeutil';
 
-describe('turn simulator', () => {
+xdescribe('turn simulator', () => {
   // describe('_arrayReducer', () => {
   //   it('should turn objects and arrays of objects into an array of objects', () => {
   //     const attacker = util.researchPokemonById('eevee');

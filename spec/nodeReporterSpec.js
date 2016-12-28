@@ -3,7 +3,7 @@ import Iterator from 'iterator';
 import nodeReporter from 'nodeReporter';
 import Fitness from 'fitness';
 
-describe('nodeReporter', () => {
+xdescribe('nodeReporter', () => {
   let state;
   beforeEach( () => {
     const mine = Object.assign({

@@ -2,7 +2,7 @@ import Iterator from 'iterator';
 // import NodeReporter from 'la-fitness/nodeReporter';
 import util from 'leftovers-again/lib/pokeutil';
 
-describe('iterator', () => {
+xdescribe('iterator', () => {
   describe('iterate', () => {
     let state;
     let myOptions;

@@ -15,7 +15,7 @@ const stateLoader = (filename) => {
 
 let bot;
 
-describe('_integration', () => {
+xdescribe('_integration', () => {
   beforeEach( () => {
     bot = new LAFitness();
     spyOn(Log, 'toFile');
@@ -34,7 +34,7 @@ describe('_integration', () => {
   //   const {state} = stateLoader('log/13-59-39.20');
   //   const decision = bot.decide(state);
   //   console.log(decision);
-  // });  
+  // });
   it('cannot map', () => {
     const {state} = stateLoader('./log/14-22-34.err');
     const decision = bot.decide(state);
