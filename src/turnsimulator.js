@@ -176,7 +176,7 @@ class TurnSimulator {
       } else {
         // we both switched out, lawl.
         const switched = second.switch;
-        switched.switch = second.species;
+        const switchedFrom = state.opponent.active.species;
 
         // gotta maybe switch back.
         const withChance = {
@@ -191,12 +191,9 @@ class TurnSimulator {
 
         // attach description to all states
         withChance.state.description = description.concat(
-          `${second.species} switches to ${switched.switch.species}`,
-          `${withChance.state.self.active.hp} - ${withChance.state.opponent.active.hp}`
+          `${switchedFrom} switches to ${switched.species}`,
+          `${withChance.state.self.active.hp || 100} - ${withChance.state.opponent.active.hp || 100}`
         );
-
-        console.log('added this description:', withChance.state.description);
-
 
         afterSecond.push(withChance);
       }
@@ -303,7 +300,8 @@ class TurnSimulator {
       return [{
         attacker,
         defender,
-        chance: 1
+        chance: 1,
+        desc: 'no move given'
       }];
     }
 
@@ -326,30 +324,49 @@ class TurnSimulator {
       }
     }
 
+    // @TODO could move this to _getConditionMultiplier
     if (attacker.volatileStatus === volatileStatuses.FLINCH) {
       attacker.volatileStatus = '';
       return [{
         attacker,
         defender,
-        chance: 1
+        chance: 1,
+        hit: false,
+        desc: 'flinched'
       }];
     }
+
+    // handle situations where we miss
+    const hitChance = this._getConditionMultiplier(move.accuracy, attacker.conditions, attacker.volatileStatuses);
 
     const dmg = Damage.getDamageResult(attacker, defender, move);
     // const dmg = 40;
     const { koturns, kochance } = KO.predictKO(dmg, defender);
     const possible = [];
+
+    if (hitChance < 1) {
+      possible.push({
+        attacker: util.clone(attacker),
+        defender: util.clone(defender),
+        chance: 1 - hitChance,
+        hit: false,
+        desc: 'missed'
+      });
+    }
+
     if (koturns === 1) {
       possible.push({
         attacker: util.clone(attacker),
         defender: this._kill(util.clone(defender)),
-        chance: kochance
+        chance: kochance * hitChance,
+        desc: 'killed'
       });
       if (kochance < 1) {
         possible.push({
           attacker: util.clone(attacker),
           defender: this._takeDamage(util.clone(defender), dmg[0]),
-          chance: (1 - kochance)
+          chance: (1 - kochance) * hitChance,
+          desc: 'damaged & nearly killed'
         });
       }
     } else {
@@ -357,25 +374,34 @@ class TurnSimulator {
       possible.push({
         attacker: util.clone(attacker),
         defender: this._takeDamage(util.clone(defender), dmg[0]),
-        chance: 0.5
+        chance: 0.5 * hitChance,
+        desc: 'hit for min damage'
       });
       possible.push({
         attacker: util.clone(attacker),
         defender: this._takeDamage(util.clone(defender), dmg[dmg.length - 1]),
-        chance: 0.5
+        chance: 0.5 * hitChance,
+        desc: 'hit for max damage'
       });
     }
+
+
     const applied = [];
     possible.forEach((event) => {
-      // Log.debug('looking at possible:');
-      // Log.debug(event.defender.hp, event.chance);
+      // don't try to proc if the move missed
+      if (event.hit === false) {
+        applied.push(event);
+        return;
+      }
+
       const maybeProcs = this._applySecondaries(event, move, defender.hp - event.defender.hp);
       maybeProcs.forEach((proc) => {
         // Log.debug('looking at proc:', proc.chance);
         const res = {
           attacker: proc.attacker,
           defender: proc.defender,
-          chance: (proc.chance * event.chance)
+          chance: (proc.chance * event.chance),
+          desc: proc.desc
         };
         // Log.debug(event.chance, proc.chance, res.chance);
         if (res.chance > 0) applied.push(res);
@@ -393,6 +419,25 @@ class TurnSimulator {
     return applied;
   }
 
+  _getConditionMultiplier(accuracy, conditions = '', volatileStatus = '') {
+    let factor = 1;
+    if (accuracy !== true || accuracy < 100) {
+      factor = accuracy / 100;
+    }
+    if (conditions.indexOf('par') >= 0) {
+      factor = factor * 0.75;
+    }
+    if (conditions.indexOf('frz') >= 0) {
+      factor = factor * 0.8;
+    }
+    if (conditions.indexOf('slp') >= 0) {
+      factor = factor * 0.33;
+    }
+    if (volatileStatus.indexOf('frz') >= 0) {
+      factor = factor * 0.2;
+    }
+    return factor;
+  }
 
   /**
    * Apply effects, such as status effects, boosts, unboosts, and volatile
@@ -480,6 +525,7 @@ class TurnSimulator {
 
     noproc.chance = (1 - (secondary.chance / 100));
     procs.chance = (secondary.chance / 100);
+    procs.desc += ' w secondary effect';
 
     if (secondary.self) {
       if (secondary.self.boosts) {
@@ -497,6 +543,13 @@ class TurnSimulator {
       } else {
         procs.defender.volatileStatus = secondary.volatileStatus;
       }
+    }
+    if (secondary.status) {
+      const target = (move.target === 'self') ? procs.attacker : procs.defender;
+      if (!target.statuses) {
+        target.statuses = [];
+      }
+      target.statuses.push(secondary.statuses);
     }
 
     // Log.debug('inside secondaries:', noproc.defender.volatileStatus, procs.defender.volatileStatus);

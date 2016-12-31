@@ -2,7 +2,8 @@ import TurnSimulator from 'turnsimulator';
 import Damage from 'leftovers-again/lib/game/damage';
 import util from 'leftovers-again/lib/pokeutil';
 
-xdescribe('turn simulator', () => {
+let possible;
+describe('turn simulator', () => {
   // describe('_arrayReducer', () => {
   //   it('should turn objects and arrays of objects into an array of objects', () => {
   //     const attacker = util.researchPokemonById('eevee');
@@ -43,12 +44,14 @@ xdescribe('turn simulator', () => {
   //   });
   // });
   describe('_applySecondaries', () => {
-    it('should handle a self-boosting move', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
+    beforeEach(() => {
+      possible = {
+        attacker: {hp: 100, maxhp: 100},
+        defender: {hp: 100, maxhp: 100},
         chance: 1
       };
+    });
+    it('should handle a self-boosting move', () => {
       possible.attacker.move = {
         target: 'self',
         boosts: {atk: 2}
@@ -58,11 +61,6 @@ xdescribe('turn simulator', () => {
     });
 
     it('should handle a stat lowering move', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
-        chance: 1
-      };
       possible.attacker.move = {
         target: 'normal',
         boosts: {atk: -2}
@@ -72,11 +70,6 @@ xdescribe('turn simulator', () => {
     });
 
     it('should handle a self-boosting volatile status', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
-        chance: 1
-      };
       possible.attacker.move = {
         target: 'self',
         volatileStatus: 'awesome'
@@ -86,11 +79,6 @@ xdescribe('turn simulator', () => {
     });
 
     it('should handle a volatile status move', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
-        chance: 1
-      };
       possible.attacker.move = {
         target: 'normal',
         volatileStatus: 'paralysis'
@@ -100,11 +88,6 @@ xdescribe('turn simulator', () => {
     });
 
     it('should apply possible effects', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
-        chance: 1
-      };
       possible.attacker.move = {
         target: 'normal',
         secondary: {
@@ -123,13 +106,8 @@ xdescribe('turn simulator', () => {
     });
 
     it('should apply status effects', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
-        chance: 1
-      };
       possible.attacker.move = {
-        target: 'status',
+        target: 'normal',
         status: 'tox'
       };
 
@@ -140,11 +118,6 @@ xdescribe('turn simulator', () => {
     });
 
     it('should apply possible boosts', () => {
-      const possible = {
-        attacker: {},
-        defender: {},
-        chance: 1
-      };
       possible.attacker.move = {
         target: 'normal',
         secondary: {
@@ -164,33 +137,25 @@ xdescribe('turn simulator', () => {
     });
 
     it('should handle healing moves', () => {
-      const possible = {
-        attacker: {
-          hp: 25,
-          maxhp: 100,
-          move: {
-            heal: [1, 2],
-            target: 'self'
-          },
+      possible.attacker = {
+        hp: 25,
+        maxhp: 100,
+        move: {
+          heal: [1, 2],
+          target: 'self'
         },
-        defender: {},
-        chance: 1
       };
       const [res] = TurnSimulator._applySecondaries(possible,
         possible.attacker.move);
       expect(res.attacker.hp).toEqual(75);
     });
     it('should handle drain moves', () => {
-      const possible = {
-        attacker: {
-          hp: 25,
-          maxhp: 100,
-          move: {
-            drain: [1, 2]
-          },
+      possible.attacker = {
+        hp: 25,
+        maxhp: 100,
+        move: {
+          drain: [1, 2]
         },
-        defender: {},
-        chance: 1
       };
       const [res] = TurnSimulator._applySecondaries(possible,
         possible.attacker.move, 100);
@@ -217,19 +182,19 @@ xdescribe('turn simulator', () => {
   describe('_simulateMove', () => {
     let attacker;
     let defender;
+    const assumptions = {
+      level: 50,
+      hp: 100,
+      maxhp: 100
+    };
     beforeEach( () => {
       attacker = util.researchPokemonById('eevee');
+      Object.assign(attacker, assumptions);
       defender = util.researchPokemonById('meowth');
+      Object.assign(defender, assumptions);
     });
     it('should handle boring damage', () => {
       attacker.move = util.researchMoveById('dragonrage');
-      const assumptions = {
-        level: 50,
-        hp: 100,
-        maxhp: 100
-      };
-      Object.assign(attacker, assumptions);
-      Object.assign(defender, assumptions);
       const res = TurnSimulator._simulateMove({
         attacker,
         defender
@@ -241,13 +206,8 @@ xdescribe('turn simulator', () => {
     });
     it('should handle likely death', () => {
       attacker.move = util.researchMoveById('dragonrage');
-      const assumptions = {
-        level: 50,
-        hp: 40,
-        maxhp: 100
-      };
-      Object.assign(attacker, assumptions);
-      Object.assign(defender, assumptions);
+      attacker.hp = 40;
+      defender.hp = 40;
       const res = TurnSimulator._simulateMove({
         attacker,
         defender
@@ -257,13 +217,6 @@ xdescribe('turn simulator', () => {
     });
     it('should handle possible death', () => {
       attacker.move = util.researchMoveById('waterpulse');
-      const assumptions = {
-        level: 50,
-        hp: 100,
-        maxhp: 100
-      };
-      Object.assign(attacker, assumptions);
-      Object.assign(defender, assumptions);
       const possibilities = TurnSimulator._simulateMove({
         attacker,
         defender
@@ -272,6 +225,43 @@ xdescribe('turn simulator', () => {
       const hps = new Set();
       possibilities.forEach(res => hps.add(res.defender.hp));
       expect(hps.size).toEqual(2);
+    });
+    it('should consider inaccurate moves', () => {
+      attacker.move = util.researchMoveById('hurricane');
+      const res = TurnSimulator._simulateMove({attacker, defender});
+      const missed = res.reduce((prev, curr) => {
+        return (curr.defender.hp === 100)
+          ? prev + curr.chance
+          : prev;
+      }, 0);
+      expect(missed).toBeCloseTo(0.3, 5);
+      const all = res.reduce((prev, curr) => {
+        return prev + curr.chance;
+      }, 0);
+      expect(all).toBeCloseTo(1, 5);
+    });
+    it('should consider inaccurate moves w secondary effects', () => {
+      attacker.move = util.researchMoveById('smog');
+      console.log(attacker.move);
+      const res = TurnSimulator._simulateMove({attacker, defender});
+      const missed = res.reduce((prev, curr) => {
+        return (curr.defender.hp === 100)
+          ? prev + curr.chance
+          : prev;
+      }, 0);
+      expect(missed).toBeCloseTo(0.3, 5);
+      const all = res.reduce((prev, curr) => {
+        return prev + curr.chance;
+      }, 0);
+      expect(all).toBeCloseTo(1, 5);
+
+      const statuses = res.reduce((prev, curr) => {
+        return (curr.defender.statuses && curr.defender.statuses.length > 0)
+          ? prev + curr.chance
+          : prev;
+      }, 0);
+      // smog is 70% accurate, and has 40% chance to toxify
+      expect(statuses).toBeCloseTo(0.4 * 0.7, 5);
     });
   });
   describe('simulate', () => {
@@ -338,8 +328,6 @@ xdescribe('turn simulator', () => {
       expect(res[3].state.opponent.active.hp).toEqual(51);
     });
     it('should handle me switching out', () => {
-      console.log('HEAR ME OUT>> ');
-      console.log(state);
       const myMove = util.researchPokemonById('mew');
       myMove.hp = 100;
       myMove.maxhp = 100;
@@ -388,10 +376,10 @@ xdescribe('turn simulator', () => {
       const res = TurnSimulator.simulate(state, myMove, yourMove);
       expect(res[0].state.self.active.species).toEqual('Klefki');
       expect(res[0].state.self.active.moves.length).toEqual(1);
-      console.log(res[0].state.self.active.moves);
       expect(res[0].state.self.active.moves[0].id).toEqual('earthquake');
       expect(res[0].state.opponent.active.species).toEqual('Charmander');
     });
+
   });
 
   describe('updateMoves', () => {
@@ -475,7 +463,7 @@ xdescribe('turn simulator', () => {
         util.researchMoveById('swordsdance'),
       ];
     });
-    xit('should produce some possibilities', () => {
+    it('should produce some possibilities', () => {
       const futures = TurnSimulator.iterate(state, myOptions, yourOptions);
       const comparison = TurnSimulator.compare(futures);
       console.log(comparison);
