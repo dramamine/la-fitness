@@ -135,22 +135,43 @@ describe('iterator', () => {
         const nodes = Iterator.iterateSingleThreaded(state, 1,
           state.self.active.moves, state.opponent.active.moves);
         const futures = nodes.filter(node => node.myChoice && node.terminated)
-          .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+          .sort((a, b) => b.fitness.expectedValue - a.fitness.expectedValue); // highest fitness first
         const future = futures[0];
-        console.log(futures[0].myChoice.id, futures[0].fitness, futures[0].fitnessDetails);
-        console.log(futures[1].myChoice.id, futures[1].fitness, futures[1].fitnessDetails);
-        expect(future.myChoice.id).toEqual('roost');
-
-        // switching gears: we're at full health. don't choose to heal.
-        future.state.self.active.hp = 100;
-        future.state.self.active.hppct = 100;
-        const next = Iterator.iterateSingleThreaded(future.state, 1,
-          future.state.self.active.moves, future.state.opponent.active.moves);
+        expect(futures[0].myChoice.id).toEqual('roost');
+      });
+      it('should not roost when at full health', () => {
+        const myActive = Object.assign({
+          hppct: 100,
+          hp: 100,
+          maxhp: 100,
+          moves: [
+            util.researchMoveById('roost'),
+            util.researchMoveById('quickattack')
+          ],
+          active: true
+        }, util.researchPokemonById('eevee'));
+        const yourActive = Object.assign({
+          active: true,
+          hppct: 100,
+          moves: [
+            util.researchMoveById('splash')
+          ]
+        }, util.researchPokemonById('steelix'));
+        const state = {
+          self: {
+            active: myActive,
+            reserve: [myActive]
+          },
+          opponent: {
+            active: yourActive,
+            reserve: [yourActive]
+          }
+        };
+        const next = Iterator.iterateSingleThreaded(state, 1,
+          state.self.active.moves, state.opponent.active.moves);
         const nexts = next.filter(node => node.myChoice && node.terminated)
-          .sort((a, b) => b.fitness - a.fitness); // highest fitness first
+          .sort((a, b) => b.fitness.expectedValue - a.fitness.expectedValue); // highest fitness first
         const nextChoice = nexts[0];
-        console.log(nexts[0].myChoice.id, nexts[0].fitness, nexts[0].fitnessDetails);
-        console.log(nexts[1].myChoice.id, nexts[1].fitness, nexts[1].fitnessDetails);
         expect(nextChoice.myChoice.id).toEqual('quickattack');
       });
     });

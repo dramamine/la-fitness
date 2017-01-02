@@ -80,6 +80,12 @@ class Fitness {
         return (item.fitness.endurance >= item.fitness.block)
           ? prev + item.chance
           : prev;
+      }, 0),
+      myHealth: possibilities.reduce((prev, item) => {
+        return prev + (item.fitness.myHealth * item.chance);
+      }, 0),
+      yourHealth: possibilities.reduce((prev, item) => {
+        return prev + (item.fitness.yourHealth * item.chance);
       }, 0)
     };
   }

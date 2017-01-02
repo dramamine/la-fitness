@@ -86,21 +86,14 @@ class TurnSimulator {
     // afterFirst is an array of [attacker, defender, chance]
     let afterFirst;
     if (first.move) {
-      try {
-        afterFirst = this._simulateMove({attacker: first, defender: second});
-        description.push(`${first.id} casts ${first.move.id}`);
-      } catch(e) {
-        console.error('simulate move broke');
-        console.error(JSON.stringify(state) );
-        console.error(JSON.stringify(myChoice) );
-        console.error(JSON.stringify(yourChoice) );
-        console.error(JSON.stringify(attacker) );
-        console.error(JSON.stringify(defender) );
-      }
+      afterFirst = this._simulateMove({attacker: first, defender: second});
+      description.push(`${first.id} casts ${first.move.id}`);
+
     } else {
       const switched = util.clone(first.switch);
       switched.switch = first.species; // ?? to know we switched?
-      afterFirst = [{attacker: switched, defender: second, chance: 1}];
+      afterFirst = [{attacker: switched, defender: second, chance: 1,
+        desc: `${first.species} switches to ${switched.species}`}];
       description.push(`${first.species} switches to ${switched.species}`);
       // Log.debug('switched! afterFirst is now');
       // Log.debug(afterFirst);
@@ -113,7 +106,8 @@ class TurnSimulator {
       if (second.dead) {
         const withChance = {
           state: util.clone(state),
-          chance: possibility.chance
+          chance: possibility.chance,
+          desc: possibility.desc
         };
         if (mineGoesFirst) {
           withChance.state.self.active = possibility.attacker;
@@ -134,7 +128,8 @@ class TurnSimulator {
         try {
           res = this._simulateMove({
             attacker: possibility.defender,
-            defender: possibility.attacker
+            defender: possibility.attacker,
+            desc: possibility.desc
           });
           description.push(`${possibility.defender.id} casts ${possibility.defender.move.id}`);
         } catch(e) {
@@ -154,7 +149,8 @@ class TurnSimulator {
           // notice that we convert back from attacker/defender distinction.
           const withChance = {
             state: util.clone(state),
-            chance: possibility.chance * poss.chance
+            chance: possibility.chance * poss.chance,
+            desc: poss.desc
           };
           // if mine goes first, then it was attacker on first round and defender
           // on second round.
@@ -170,7 +166,6 @@ class TurnSimulator {
           withChance.state.description = description.concat(
             `${withChance.state.self.active.hp} - ${withChance.state.opponent.active.hp}`
           );
-
           afterSecond.push(withChance);
         });
       } else {
@@ -181,7 +176,8 @@ class TurnSimulator {
         // gotta maybe switch back.
         const withChance = {
           state: util.clone(state),
-          chance: possibility.chance
+          chance: possibility.chance,
+          desc: possibility.desc
         };
         // don't need conditionals here, bc mineGoesFirst is always true.
         // (you can't have a move happen first and a switch happen second)
@@ -288,12 +284,12 @@ class TurnSimulator {
    * @param  {[type]} move     [description]
    * @return {[type]}          [description]
    */
-  _simulateMove({ attacker, defender }) {
+  _simulateMove({ attacker, defender, desc = '' }) {
     // Log.debug('simulatemove:', attacker, defender, chance);
     attacker = JSON.parse(JSON.stringify(attacker)); // eslint-disable-line
     defender = JSON.parse(JSON.stringify(defender)); // eslint-disable-line
     const move = attacker.move;
-
+    desc = desc.trim();
 
     Log.debug(`${attacker.species} is casting ${move.id}` );
     if (!move) {
@@ -301,7 +297,7 @@ class TurnSimulator {
         attacker,
         defender,
         chance: 1,
-        desc: 'no move given'
+        desc: desc + 'no move given'
       }];
     }
 
@@ -332,7 +328,7 @@ class TurnSimulator {
         defender,
         chance: 1,
         hit: false,
-        desc: 'flinched'
+        desc: `${desc} ${attacker.species} flinched`
       }];
     }
 
@@ -350,7 +346,7 @@ class TurnSimulator {
         defender: util.clone(defender),
         chance: 1 - hitChance,
         hit: false,
-        desc: 'missed'
+        desc: `${desc} ${move.id} missed`
       });
     }
 
@@ -359,14 +355,14 @@ class TurnSimulator {
         attacker: util.clone(attacker),
         defender: this._kill(util.clone(defender)),
         chance: kochance * hitChance,
-        desc: 'killed'
+        desc: `${move.id} killed `
       });
       if (kochance < 1) {
         possible.push({
           attacker: util.clone(attacker),
           defender: this._takeDamage(util.clone(defender), dmg[0]),
           chance: (1 - kochance) * hitChance,
-          desc: 'damaged & nearly killed'
+          desc: `${desc} ${move.id} damaged & nearly killed`
         });
       }
     } else {
@@ -375,13 +371,13 @@ class TurnSimulator {
         attacker: util.clone(attacker),
         defender: this._takeDamage(util.clone(defender), dmg[0]),
         chance: 0.5 * hitChance,
-        desc: 'hit for min damage'
+        desc: `${desc} ${move.id} hit for min damage`
       });
       possible.push({
         attacker: util.clone(attacker),
         defender: this._takeDamage(util.clone(defender), dmg[dmg.length - 1]),
         chance: 0.5 * hitChance,
-        desc: 'hit for max damage'
+        desc: `${desc} ${move.id} hit for max damage`
       });
     }
 
@@ -416,12 +412,17 @@ class TurnSimulator {
       Log.error(applied);
     }
 
+    // nice for debugging descriptions
+    // applied.forEach(thing => {
+    //   console.log(`results from ${attacker.species} casting ${move.id}`);
+    //   console.log(thing.chance, thing.desc);
+    // });
     return applied;
   }
 
   _getConditionMultiplier(accuracy, conditions = '', volatileStatus = '') {
     let factor = 1;
-    if (accuracy !== true || accuracy < 100) {
+    if (accuracy !== true && accuracy < 100) {
       factor = accuracy / 100;
     }
     if (conditions.indexOf('par') >= 0) {
@@ -449,7 +450,7 @@ class TurnSimulator {
    * @param  {[type]} move     [description]
    * @return {[type]}          [description]
    */
-  _applySecondaries(possible, move, dmg = 0) {
+  _applySecondaries(possible, move, dmg = 0, desc = '') {
     // handle moves that always boost or unboost
     if (move.boosts) {
       if (move.target === 'self') {
@@ -512,7 +513,8 @@ class TurnSimulator {
       return [{
         attacker: possible.attacker,
         defender: possible.defender,
-        chance: 1
+        chance: 1,
+        desc: possible.desc
       }];
     }
 

@@ -149,6 +149,16 @@ describe('turn simulator', () => {
         possible.attacker.move);
       expect(res.attacker.hp).toEqual(75);
     });
+    it('should handle roost', () => {
+      possible.attacker = {
+        hp: 25,
+        maxhp: 100,
+        move: util.researchMoveById('roost'),
+      };
+      const [res] = TurnSimulator._applySecondaries(possible,
+        possible.attacker.move);
+      expect(res.attacker.hp).toEqual(75);
+    });
     it('should handle drain moves', () => {
       possible.attacker = {
         hp: 25,
@@ -242,7 +252,6 @@ describe('turn simulator', () => {
     });
     it('should consider inaccurate moves w secondary effects', () => {
       attacker.move = util.researchMoveById('smog');
-      console.log(attacker.move);
       const res = TurnSimulator._simulateMove({attacker, defender});
       const missed = res.reduce((prev, curr) => {
         return (curr.defender.hp === 100)
