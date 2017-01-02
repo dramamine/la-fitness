@@ -247,4 +247,82 @@ describe('Fitness', () => {
       expect(updated.summary).toEqual(orig.summary);
     });
   });
+
+  describe('summarize', () => {
+    it('should produce some valid data', () => {
+      const possibilities = [
+        {
+          state: {
+            self: {
+              active: {}
+            },
+            opponent: {
+              active: {}
+            }
+          },
+          fitness: {
+            endurance: 3,
+            block: 0,
+            value: 1
+          },
+          chance: 0.15
+        },
+        {
+          state: {
+            self: {
+              active: {}
+            },
+            opponent: {
+              active: {}
+            }
+          },
+          fitness: {
+            endurance: 0,
+            block: 3,
+            value: 2
+          },
+          chance: 0.2
+        },
+        {
+          state: {
+            self: {
+              active: { dead: true }
+            },
+            opponent: {
+              active: {}
+            }
+          },
+          fitness: {
+            endurance: 3,
+            block: 0,
+            value: 3
+          },
+          chance: 0.25
+        },
+        {
+          state: {
+            self: {
+              active: {}
+            },
+            opponent: {
+              active: { dead: true }
+            }
+          },
+          fitness: {
+            endurance: 0,
+            block: 3,
+            value: 4
+          },
+          chance: 0.4
+        }
+      ];
+      const summary = Fitness.summarize(possibilities);
+      expect(summary.definiteWin).toBeCloseTo(0.4, 5);
+      expect(summary.definiteLoss).toBeCloseTo(0.25, 5);
+      expect(summary.likelyWin).toBeCloseTo(0.6, 5);
+      expect(summary.likelyLoss).toBeCloseTo(0.4, 5);
+      expect(summary.expectedValue).toBeGreaterThan(1);
+      expect(summary.expectedValue).toBeLessThan(4);
+    });
+  });
 });

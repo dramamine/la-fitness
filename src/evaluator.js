@@ -11,21 +11,22 @@ class Evaluator {
 
     // simulate each of the opponent's choices
     const whatCouldHappen = yourOptions.map((yourChoice) => {
-      // Log.debug('looking at your choice:' + yourChoice.id);
-      // an array of {state, chance} objects.
+      // this is an array of {state, chance} objects.
       const possibilities = TurnSimulator.simulate(
         state,
         myChoice,
         yourChoice
       );
+
+      // get 'fitness details' for each of these states
       possibilities.forEach((possibility) => {
         if (isNaN(possibility.state.self.active.hp)) {
           console.log('stop the presses');
           process.exit();
         }
-        possibility.fitnessDetails = Fitness.rate(possibility.state, depth);
-        possibility.fitness = possibility.fitnessDetails.summary;
-        possibility.fitnessDetails.chance = possibility.chance;
+
+        possibility.fitness = Fitness.rate(possibility.state, depth);
+        possibility.fitness.chance = possibility.chance;
 
         if (isNaN(possibility.fitness)) {
           console.error('stop the presses! this state was rated wrong');
@@ -34,13 +35,16 @@ class Evaluator {
           exit();
         }
       });
-      const expectedValue = possibilities.reduce((prev, item) => {
-        return prev + item.fitness * item.chance;
-      }, 0);
+
+      // get 'fitness summaries' for each of these states.
+      // note that each possibility has a certain fitness object,
+      // and 'possibilities' has a different fitness object (different properties)
+      possibilities.fitness = Fitness.summarize(possibilities);
+
       // possibilities might be extraneous here...
       // Log.debug('ev calculation:', yourChoice.id, expectedValue);
-      return {possibilities, expectedValue, yourChoice};
-    }).sort( (a, b) => a.expectedValue - b.expectedValue);
+      return {possibilities, yourChoice};
+    }).sort( (a, b) => a.fitness.expectedValue - b.fitness.expectedValue);
     // Log.debug('made it past teh loop');
     // at this point, whatCouldHappen is an array of all the resulting situations
     // from our opponent's choice. it's sorted by expected value, so the first
@@ -61,8 +65,7 @@ class Evaluator {
     const evaluated = {
       prevNode: node,
       state: worstCase.possibilities[0].state,
-      fitnessDetails: worstCase.possibilities[0].fitnessDetails,
-      fitness: worstCase.expectedValue,
+      fitness: worstCase.possibilities.fitness,
       myChoice,
       yourChoice: worstCase.yourChoice,
       depth: depth - 1
@@ -76,7 +79,7 @@ class Evaluator {
       const betterCase = whatCouldHappen[1];
       evaluated.betterCase = {
         risk: this._considerSecondWorstCase(state, worstCase, betterCase),
-        fitness: betterCase.possibilities[0].fitnessDetails
+        fitness: betterCase.possibilities.fitness
       };
     }
 

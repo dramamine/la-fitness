@@ -46,10 +46,42 @@ class Fitness {
 
     const long = (myHealth - yourHealth) / 100;
 
-    const summary = short + long + depth;
-    // console.log('rating a thing:');
-    // console.log(endurance, block, myHealth, yourHealth, summary);
-    return {endurance, block, myHealth, yourHealth, depth, summary};
+    const value = short + long + depth;
+    return {endurance, block, myHealth, yourHealth, depth, value};
+  }
+
+  /**
+   * Summarize the fitness of possibility objects
+   *
+   * @param  {[type]} possibilities [description]
+   * @return {[type]}               [description]
+   */
+  summarize(possibilities) {
+    return {
+      expectedValue: possibilities.reduce((prev, item) => {
+        return prev + item.fitness.value * item.chance;
+      }, 0),
+      definiteWin: possibilities.reduce((prev, item) => {
+        return (item.state.opponent.active.dead)
+          ? prev + item.chance
+          : prev;
+      }, 0),
+      definiteLoss: possibilities.reduce((prev, item) => {
+        return (item.state.self.active.dead)
+          ? prev + item.chance
+          : prev;
+      }, 0),
+      likelyWin: possibilities.reduce((prev, item) => {
+        return (item.fitness.endurance < item.fitness.block)
+          ? prev + item.chance
+          : prev;
+      }, 0),
+      likelyLoss: possibilities.reduce((prev, item) => {
+        return (item.fitness.endurance >= item.fitness.block)
+          ? prev + item.chance
+          : prev;
+      }, 0)
+    };
   }
 
   selfFitness(mon) {
