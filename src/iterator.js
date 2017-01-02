@@ -55,7 +55,7 @@ class Iterator {
 
     const initialNode = {
       state,
-      fitness: 0,
+      fitness: {expectedValue: 0},
       depth
     };
 
@@ -112,7 +112,7 @@ class Iterator {
 
     const initialNode = {
       state: this._makeAssumptions(state),
-      fitness: 0,
+      fitness: {expectedValue: 0},
       depth
     };
 
@@ -217,7 +217,8 @@ class Iterator {
    * @return {[type]}       [description]
    */
   _getNextNode(nodes) {
-    const choices = nodes.filter(this.evaluatable).sort((a, b) => b.fitness - a.fitness);
+    const choices = nodes.filter(this.evaluatable).sort((a, b) =>
+      b.fitness.expectedValue - a.fitness.expectedValue);
     if (choices.length === 0) return null;
     return choices[0];
   }
@@ -228,6 +229,7 @@ class Iterator {
    * @return {Boolean}
    */
   evaluatable(node) {
+    if (!node.fitness) return false;
     if (node.evaluated) return false;
     if (node.terminated) return false;
     if (node.depth === 0) return false;

@@ -27,13 +27,6 @@ class Evaluator {
 
         possibility.fitness = Fitness.rate(possibility.state, depth);
         possibility.fitness.chance = possibility.chance;
-
-        if (isNaN(possibility.fitness)) {
-          console.error('stop the presses! this state was rated wrong');
-          console.error(JSON.stringify(possibility.state));
-          console.error(JSON.stringify(possibility.fitnessDetails));
-          exit();
-        }
       });
 
       // get 'fitness summaries' for each of these states.
@@ -44,7 +37,7 @@ class Evaluator {
       // possibilities might be extraneous here...
       // Log.debug('ev calculation:', yourChoice.id, expectedValue);
       return {possibilities, yourChoice};
-    }).sort( (a, b) => a.fitness.expectedValue - b.fitness.expectedValue);
+    }).sort( (a, b) => a.possibilities.fitness.expectedValue - b.possibilities.fitness.expectedValue);
     // Log.debug('made it past teh loop');
     // at this point, whatCouldHappen is an array of all the resulting situations
     // from our opponent's choice. it's sorted by expected value, so the first

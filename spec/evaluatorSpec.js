@@ -38,7 +38,7 @@ describe('evaluator', () => {
       const myMove = util.researchMoveById('splash');
       const node = {state, depth: 1};
       const res = Evaluator.evaluateNode(node, myMove, yourOptions);
-      expect(res.fitness).toBeLessThan(0);
+      expect(res.fitness.expectedValue).toBeLessThan(0);
       expect(res.state.self.active.dead).toBe(true);
       expect(res.state.self.active.hp).toEqual(0);
       expect(res.state.field).toBeTruthy();

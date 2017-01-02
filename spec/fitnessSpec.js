@@ -178,7 +178,7 @@ describe('Fitness', () => {
 
       state.self.active.hppct = 51;
       const updated = Fitness.rate(state);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
       expect(updated.myHealth).toBeGreaterThan(orig.myHealth);
     });
     it('should know a state is better if the opponent has less health', () => {
@@ -186,7 +186,7 @@ describe('Fitness', () => {
 
       state.opponent.active.hppct = 49;
       const updated = Fitness.rate(state);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
       expect(updated.yourHealth).toBeLessThan(orig.yourHealth);
     });
 
@@ -202,13 +202,13 @@ describe('Fitness', () => {
       pikachu.hppct = 100;
 
       const updated = Fitness.rate(state);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
       expect(updated.myHealth).toBeGreaterThan(orig.myHealth);
     });
     it('should favor shorter paths (higher depth) to the state', () => {
       const orig = Fitness.rate(state, 1);
       const updated = Fitness.rate(state, 2);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
       expect(updated.depth).toBeGreaterThan(orig.depth);
     });
     it('should favor state where I take fewer turns to kill opponent', () => {
@@ -216,7 +216,7 @@ describe('Fitness', () => {
       const orig = Fitness.rate(state);
       Fitness._getHitsEndured.and.returnValues(4, 5);
       const updated = Fitness.rate(state);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
       expect(updated.endurance).toBeLessThan(orig.endurance);
       expect(updated.block).toEqual(orig.block);
     });
@@ -225,7 +225,7 @@ describe('Fitness', () => {
       const orig = Fitness.rate(state);
       Fitness._getHitsEndured.and.returnValues(5, 6);
       const updated = Fitness.rate(state);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
       expect(updated.endurance).toEqual(orig.endurance);
       expect(updated.block).toBeGreaterThan(orig.block);
     });
@@ -236,7 +236,7 @@ describe('Fitness', () => {
       state.self.active.hppct = 5;
       state.opponent.active.dead = true;
       const updated = Fitness.rate(state);
-      expect(updated.summary).toBeGreaterThan(orig.summary);
+      expect(updated.value).toBeGreaterThan(orig.value);
     });
     it('should be indifferent if we do equal damage to each other', () => {
       const orig = Fitness.rate(state);
@@ -244,7 +244,7 @@ describe('Fitness', () => {
       state.self.active.hppct = 5;
       state.opponent.active.hppct = 5;
       const updated = Fitness.rate(state);
-      expect(updated.summary).toEqual(orig.summary);
+      expect(updated.value).toEqual(orig.value);
     });
   });
 
